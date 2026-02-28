@@ -600,10 +600,13 @@ export default function LiDARScanner() {
 
           {isARSupported === false && (
             <div className="my-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm">
-              <strong>WebXR not supported</strong>
+              <strong>WebXR AR not available in this browser</strong>
               <br />
-              Open this page in <strong>Safari on iOS 16+</strong> with an
-              <strong> iPhone 12 Pro</strong> or <strong>iPad Pro</strong> for LiDAR support.
+              <br />
+              Safari on iOS does not support WebXR AR, even on LiDAR-equipped
+              devices like the iPhone 16 Pro. To use AR features, open this page
+              in <strong>Chrome on Android</strong> (Android 8+, ARCore required)
+              or on a <strong>desktop browser</strong>.
             </div>
           )}
 
