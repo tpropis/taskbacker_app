@@ -155,6 +155,7 @@ export default function LiDARScanner() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isARSupported, setIsARSupported] = useState<boolean | null>(null);
   const [arUnsupportedReason, setArUnsupportedReason] = useState<string>('');
+  const [arStartError, setArStartError] = useState<string>('');
   const [isARActive, setIsARActive]   = useState(false);
   const [placedTasks, setPlacedTasks] = useState<PlacedTask[]>([]);
   const [showInfo, setShowInfo]       = useState(false);
@@ -393,6 +394,19 @@ export default function LiDARScanner() {
       streamRef.current = null;
       videoRef.current?.parentNode?.removeChild(videoRef.current);
       videoRef.current = null;
+
+      // Surface a human-readable error so the user knows what went wrong
+      const name = (err instanceof Error) ? err.name : '';
+      const msg = (err instanceof Error) ? err.message : String(err);
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setArStartError('Camera permission denied. Go to Settings → Safari → Camera and set it to Allow, then refresh.');
+      } else if (name === 'NotFoundError') {
+        setArStartError('No camera found on this device.');
+      } else if (name === 'NotSupportedError' || name === 'SecurityError') {
+        setArStartError('Camera blocked — page must be served over HTTPS.');
+      } else {
+        setArStartError(`Could not start camera: ${msg || name || 'unknown error'}`);
+      }
     }
   }, [initThreeJS]);
 
@@ -464,69 +478,46 @@ export default function LiDARScanner() {
             Place tasks in your physical space using your iPhone camera.
           </p>
 
-          {isARSupported === false && (
+          {/* Runtime error (from actually trying to start AR) */}
+          {arStartError && (
+            <div className="my-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              <strong>Could not start AR</strong>
+              <span className="block mt-1 text-red-300">{arStartError}</span>
+            </div>
+          )}
+
+          {/* Pre-flight warning (non-blocking) */}
+          {!arStartError && isARSupported === false && (
             <div className="my-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm">
-              <strong>Camera access not available</strong>
+              <strong>Camera may not be available</strong>
               <br />
               {arUnsupportedReason && (
                 <span className="block mt-1 text-orange-300">{arUnsupportedReason}</span>
               )}
               <span className="block mt-2 text-orange-400/70">
-                Use <strong>Safari on iOS</strong> over <strong>https://</strong> and grant
-                camera permission in Settings → Safari → Camera.
+                You can still tap below to try — Safari will ask for permission if needed.
               </span>
             </div>
           )}
 
-          {isARSupported === true && (
-            <>
-              <div className="my-6 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400/80 text-sm leading-relaxed">
-                ✓ Ready on your iPhone
-                <br />
-                Point your camera and tap to place tasks in the real world
-              </div>
-
-              {/* Colormap preview */}
-              <div className="my-4 rounded-2xl overflow-hidden border border-white/10" style={{ height: 80 }}>
-                <canvas
-                  id="depth-preview"
-                  className="w-full h-full"
-                  ref={(el) => {
-                    if (!el) return;
-                    const ctx = el.getContext('2d');
-                    if (!ctx) return;
-                    el.width = 300;
-                    el.height = 80;
-                    for (let x = 0; x < 300; x++) {
-                      const [r, g, b] = turboColor(x / 300);
-                      ctx.fillStyle = `rgb(${r},${g},${b})`;
-                      ctx.fillRect(x, 0, 1, 80);
-                    }
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.fillRect(0, 0, 300, 80);
-                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                    ctx.font = 'bold 13px system-ui';
-                    ctx.fillText('AR Task Placement Preview', 75, 44);
-                  }}
-                />
-              </div>
-            </>
+          {!arStartError && isARSupported === true && (
+            <div className="my-6 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400/80 text-sm leading-relaxed">
+              ✓ Ready on your iPhone
+              <br />
+              Point your camera and tap to place tasks in the real world
+            </div>
           )}
 
           <button
-            onClick={startAR}
-            disabled={isARSupported === false || isARSupported === null}
+            onClick={() => { setArStartError(''); startAR(); }}
+            disabled={isARSupported === null}
             className="w-full py-4 rounded-2xl font-bold text-lg text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)',
-              boxShadow: isARSupported ? '0 0 60px rgba(0,212,255,0.4)' : 'none',
+              boxShadow: '0 0 60px rgba(0,212,255,0.4)',
             }}
           >
-            {isARSupported === null
-              ? 'Checking device…'
-              : isARSupported
-              ? '⬡  Enter AR Space'
-              : 'Not Supported'}
+            {isARSupported === null ? 'Checking device…' : '⬡  Enter AR Space'}
           </button>
 
           {isARSupported === null && (
