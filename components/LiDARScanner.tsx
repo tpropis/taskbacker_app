@@ -154,6 +154,7 @@ export default function LiDARScanner() {
   const [tasks, setTasks]             = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isARSupported, setIsARSupported] = useState<boolean | null>(null);
+  const [arUnsupportedReason, setArUnsupportedReason] = useState<string>('');
   const [isARActive, setIsARActive]   = useState(false);
   const [placedTasks, setPlacedTasks] = useState<PlacedTask[]>([]);
   const [showInfo, setShowInfo]       = useState(false);
@@ -167,10 +168,21 @@ export default function LiDARScanner() {
 
   // ── Check camera support ────────────────────────────────────────────────────
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+    if (typeof navigator === 'undefined') {
+      setIsARSupported(false);
+      setArUnsupportedReason('Not running in a browser.');
+      return;
+    }
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      setIsARSupported(false);
+      setArUnsupportedReason('Page must be loaded over HTTPS. Check your URL starts with https://');
+      return;
+    }
+    if (navigator.mediaDevices?.getUserMedia) {
       setIsARSupported(true);
     } else {
       setIsARSupported(false);
+      setArUnsupportedReason('Camera API unavailable. Use Safari on iOS 14.3+ or Chrome on Android.');
     }
   }, []);
 
@@ -456,8 +468,13 @@ export default function LiDARScanner() {
             <div className="my-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm">
               <strong>Camera access not available</strong>
               <br />
-              Make sure you are using <strong>Safari on iOS</strong> and have
-              granted camera permission in Settings → Safari → Camera.
+              {arUnsupportedReason && (
+                <span className="block mt-1 text-orange-300">{arUnsupportedReason}</span>
+              )}
+              <span className="block mt-2 text-orange-400/70">
+                Use <strong>Safari on iOS</strong> over <strong>https://</strong> and grant
+                camera permission in Settings → Safari → Camera.
+              </span>
             </div>
           )}
 
