@@ -10,6 +10,9 @@ node_modules/
 .env.local
 .env.*.local
 
+# TypeScript
+tsconfig.tsbuildinfo
+
 # Debug
 npm-debug.log*
 
