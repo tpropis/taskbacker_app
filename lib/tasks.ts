@@ -13,6 +13,10 @@ export interface Task {
   createdAt: string;
   beforePhoto?: string;
   afterPhoto?: string;
+  beforeScore?: number;
+  afterScore?: number;
+  beforeAnalysis?: { grade: string; headline: string; summary: string; findings: string[] };
+  afterAnalysis?: { grade: string; headline: string; summary: string; findings: string[] };
   notes?: string;
 }
 
