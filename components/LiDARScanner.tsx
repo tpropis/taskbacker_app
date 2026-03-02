@@ -176,7 +176,10 @@ export default function ScanMode() {
         }),
       });
 
-      if (!res.ok) throw new Error('API error');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || errBody.error || `HTTP ${res.status}`);
+      }
       const data: Analysis = await res.json();
       data.grade = gradeLabel(data.score);
       setAnalysis(data);
@@ -194,8 +197,9 @@ export default function ScanMode() {
       setSelectedTask(updated.find((t) => t.id === selectedTask.id) ?? selectedTask);
       setTasks(updated.filter((t) => !t.completed));
       setPhase('scored');
-    } catch {
-      setAnalyzeError('Analysis failed. Check that ANTHROPIC_API_KEY is set in Vercel.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setAnalyzeError(`Analysis failed: ${msg}`);
       // Re-open camera
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
