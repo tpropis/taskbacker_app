@@ -2,13 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --neon-blue: #00d4ff;
-  --neon-purple: #8b5cf6;
-  --neon-pink: #ff007a;
-  --neon-green: #00ff88;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -17,62 +10,45 @@
 
 html,
 body {
-  background: #000;
-  color: #fff;
+  background: #f8fafc;
+  color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Glassmorphism ─────────────────────────────── */
+/* ─── Priority badges ───────────────────────────── */
+.priority-high {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.priority-medium {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #ea580c;
+}
+
+.priority-low {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+/* ─── Glass (used in camera UI only) ───────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.glass-strong {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-/* ─── Neon effects ──────────────────────────────── */
-.neon-border-blue {
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.15), inset 0 0 20px rgba(0, 212, 255, 0.05);
-}
-
-.neon-border-purple {
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.05);
-}
-
-.glow-text-blue {
-  color: #00d4ff;
-  text-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
-}
-
-.glow-text-purple {
-  color: #8b5cf6;
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
-}
-
-/* ─── Grid overlay ──────────────────────────────── */
-.depth-grid {
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-
-/* ─── LiDAR scan line ───────────────────────────── */
+/* ─── Scan line (camera overlay) ───────────────── */
 @keyframes lidar-scan {
-  0% { top: -4px; opacity: 0; }
-  5% { opacity: 1; }
-  95% { opacity: 1; }
+  0%   { top: -3px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
   100% { top: 100%; opacity: 0; }
 }
 
@@ -80,94 +56,23 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(0, 212, 255, 0.4) 15%,
-    rgba(0, 212, 255, 1) 50%,
-    rgba(0, 212, 255, 0.4) 85%,
+    rgba(59, 130, 246, 0.5) 15%,
+    rgba(59, 130, 246, 1) 50%,
+    rgba(59, 130, 246, 0.5) 85%,
     transparent 100%
   );
-  box-shadow: 0 0 12px 4px rgba(0, 212, 255, 0.5), 0 0 40px 8px rgba(0, 212, 255, 0.2);
-  animation: lidar-scan 4s linear infinite;
+  box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.4);
+  animation: lidar-scan 3s linear infinite;
   pointer-events: none;
   z-index: 10;
 }
 
-/* ─── Gradient text ─────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #ff007a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-blue-purple {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ─── Priority badge colors ─────────────────────── */
-.priority-high {
-  background: rgba(255, 71, 87, 0.2);
-  border: 1px solid rgba(255, 71, 87, 0.5);
-  color: #ff4757;
-}
-
-.priority-medium {
-  background: rgba(255, 165, 2, 0.2);
-  border: 1px solid rgba(255, 165, 2, 0.5);
-  color: #ffa502;
-}
-
-.priority-low {
-  background: rgba(46, 213, 115, 0.2);
-  border: 1px solid rgba(46, 213, 115, 0.5);
-  color: #2ed573;
-}
-
-/* ─── AR depth canvas ───────────────────────────── */
-.depth-canvas {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  mix-blend-mode: screen;
-}
-
 /* ─── Scrollbar ─────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.3);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.6);
-}
-
-/* ─── Reticle pulse ─────────────────────────────── */
-@keyframes reticle-pulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-
-.reticle-ring {
-  animation: reticle-pulse 1.5s ease-in-out infinite;
-}
-
-/* ─── Particle field background ─────────────────── */
-@keyframes particle-drift {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
-}
+::-webkit-scrollbar         { width: 6px; }
+::-webkit-scrollbar-track   { background: #f1f5f9; }
+::-webkit-scrollbar-thumb   { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
