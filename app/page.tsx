@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Scan, Zap, Eye, Target, BarChart3,
-  Plus, X, ChevronDown,
+  Camera, Zap, Image, CheckSquare, ChevronRight,
+  Plus, X, ChevronDown, ArrowRight,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import TaskCard from '@/components/TaskCard';
@@ -33,19 +33,21 @@ function StatCounter({ value, label, color }: { value: number; label: string; co
   );
 }
 
-// ── Floating 3D task preview card ────────────────────────────────────────────
+// ── Floating preview card ────────────────────────────────────────────────────
 function HeroPreviewCard({
   title,
   priority,
   delay,
   x,
   y,
+  hasPhoto,
 }: {
   title: string;
   priority: Priority;
   delay: number;
   x: number;
   y: number;
+  hasPhoto?: boolean;
 }) {
   const color = priority === 'high' ? '#ff4757' : priority === 'medium' ? '#ffa502' : '#2ed573';
   return (
@@ -58,12 +60,13 @@ function HeroPreviewCard({
         boxShadow: `0 4px 24px rgba(0,0,0,0.4), 0 0 20px ${color}22`,
         animation: `float 6s ease-in-out infinite`,
         animationDelay: `${delay}s`,
-        minWidth: 140,
+        minWidth: 150,
       }}
     >
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
         <span className="text-white/90">{title}</span>
+        {hasPhoto && <span className="ml-auto text-emerald-400 text-xs">✓</span>}
       </div>
     </div>
   );
@@ -108,8 +111,9 @@ function CreateTaskModal({
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder="What needs to be done?"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50 focus:bg-white/8 transition-all text-sm"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50 transition-all text-sm"
             />
           </div>
 
@@ -138,10 +142,9 @@ function CreateTaskModal({
                     <button
                       key={p}
                       onClick={() => setPriority(p)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all capitalize`}
+                      className="flex-1 py-2 rounded-lg text-xs font-bold transition-all capitalize"
                       style={{
-                        backgroundColor:
-                          priority === p ? colors[p] + '33' : 'rgba(255,255,255,0.05)',
+                        backgroundColor: priority === p ? colors[p] + '33' : 'rgba(255,255,255,0.05)',
                         border: `1px solid ${priority === p ? colors[p] : 'rgba(255,255,255,0.1)'}`,
                         color: priority === p ? colors[p] : 'rgba(255,255,255,0.5)',
                       }}
@@ -234,7 +237,7 @@ export default function HomePage() {
     total: tasks.length,
     active: tasks.filter((t) => !t.completed).length,
     completed: tasks.filter((t) => t.completed).length,
-    high: tasks.filter((t) => t.priority === 'high' && !t.completed).length,
+    documented: tasks.filter((t) => t.beforePhoto && t.afterPhoto).length,
   };
 
   return (
@@ -243,41 +246,36 @@ export default function HomePage() {
 
       {/* ── Hero ── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16">
-        {/* Background layers */}
-        <div className="absolute inset-0 depth-grid opacity-60" />
+        <div className="absolute inset-0 depth-grid opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-br from-purple-950/40 via-black to-cyan-950/30" />
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-        {/* LiDAR scan line */}
         <div className="lidar-scan-line" />
 
         {/* Floating preview cards */}
         <div className="absolute inset-0 pointer-events-none hidden md:block">
-          <HeroPreviewCard title="Review proposal" priority="high" delay={0} x={8} y={25} />
-          <HeroPreviewCard title="Update design system" priority="medium" delay={1.5} x={72} y={20} />
-          <HeroPreviewCard title="Fix auth bug" priority="high" delay={0.8} x={78} y={55} />
-          <HeroPreviewCard title="Team standup prep" priority="low" delay={2.2} x={5} y={60} />
-          <HeroPreviewCard title="Q4 Report" priority="medium" delay={3} x={60} y={75} />
+          <HeroPreviewCard title="Fix server room wiring" priority="high" delay={0} x={6} y={22} hasPhoto />
+          <HeroPreviewCard title="Paint office wall" priority="medium" delay={1.5} x={70} y={18} />
+          <HeroPreviewCard title="Replace broken fixture" priority="high" delay={0.8} x={76} y={52} hasPhoto />
+          <HeroPreviewCard title="Update signage" priority="low" delay={2.2} x={4} y={58} />
+          <HeroPreviewCard title="Clean HVAC filters" priority="medium" delay={3} x={58} y={72} />
         </div>
 
-        {/* Hero content */}
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass neon-border-blue mb-8 text-sm text-cyan-400 font-medium">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            LiDAR-Powered Augmented Reality
+            Document → Review → Complete
           </div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-none mb-6 tracking-tight">
             <span className="text-white">Your tasks,</span>
             <br />
-            <span className="gradient-text">backed by reality</span>
+            <span className="gradient-text">backed by proof</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Place tasks directly in your physical space using LiDAR depth sensing.
-            See deadlines on your desk. Set priorities on your wall. Task management
-            reimagined for the spatial computing era.
+            Capture before & after photos for every task. Scan the problem, fix it,
+            scan the result. Visual proof your work is done — no spreadsheets required.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -289,8 +287,8 @@ export default function HomePage() {
                 boxShadow: '0 0 60px rgba(0,212,255,0.4), 0 0 120px rgba(139,92,246,0.2)',
               }}
             >
-              <Scan size={22} />
-              Launch AR Mode
+              <Camera size={22} />
+              Start Scanning
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
 
@@ -306,62 +304,61 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 text-xs">
-          <ChevronDown size={16} className="animate-bounce" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <ChevronDown size={16} className="text-white/30 animate-bounce" />
         </div>
       </section>
 
       {/* ── Feature highlights ── */}
       <section className="relative py-24 px-4">
-        <div className="absolute inset-0 depth-grid opacity-30" />
+        <div className="absolute inset-0 depth-grid opacity-20" />
         <div className="relative max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-black mb-4">
-              <span className="gradient-text">Spatial task intelligence</span>
+              <span className="gradient-text">Built for field work</span>
             </h2>
             <p className="text-white/50 text-lg max-w-xl mx-auto">
-              Every feature engineered for the intersection of productivity and physical space.
+              Every feature designed for teams who need proof, not just promises.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                icon: <Scan size={28} />,
+                icon: <Camera size={28} />,
                 color: '#00d4ff',
-                title: 'LiDAR Depth Sensing',
-                desc: 'Real-time 3D environment mapping at millimeter precision. See depth as a living color field.',
+                title: 'Before & After Photos',
+                desc: 'Capture the problem, fix it, capture the proof. Visual documentation that speaks for itself.',
               },
               {
-                icon: <Target size={28} />,
+                icon: <Image size={28} />,
                 color: '#8b5cf6',
-                title: 'Surface Detection',
-                desc: 'Hit-testing finds flat surfaces instantly. Place task cards on desks, walls, and floors.',
+                title: 'Visual Review',
+                desc: 'Side-by-side comparison of before and after photos. See the progress, share the evidence.',
               },
               {
-                icon: <Eye size={28} />,
-                color: '#ff007a',
-                title: 'Depth Visualization',
-                desc: 'Live turbo-colormap depth overlay shows near (warm) and far (cool) in stunning real-time.',
+                icon: <CheckSquare size={28} />,
+                color: '#2ed573',
+                title: 'Completion Tracking',
+                desc: 'Tasks marked complete only when documented. No more "I think it's done" ambiguity.',
               },
               {
                 icon: <Zap size={28} />,
-                color: '#ffcc00',
-                title: 'Instant Placement',
-                desc: 'Tap to anchor tasks at exact real-world coordinates. They persist in your space.',
+                color: '#ffa502',
+                title: 'Works Offline',
+                desc: 'All data stored locally on your device. Photos, tasks, notes — always available.',
               },
               {
-                icon: <BarChart3 size={28} />,
-                color: '#2ed573',
-                title: 'Priority Layers',
-                desc: 'Critical tasks glow red. Medium amber. Low green. Your priorities are literally visible.',
+                icon: <Camera size={28} />,
+                color: '#ff007a',
+                title: 'Native Camera',
+                desc: 'Opens your iPhone camera directly. No permissions hassle. Tap, shoot, done.',
               },
               {
-                icon: <Eye size={28} />,
+                icon: <ArrowRight size={28} />,
                 color: '#00d4ff',
-                title: 'Safari Native',
-                desc: 'Works directly in Safari on iPhone and iPad using the camera — no app install required.',
+                title: 'No App Needed',
+                desc: 'Open taskbacker.com in Safari. Works instantly — no download, no sign-up required.',
               },
             ].map((feature) => (
               <div
@@ -406,7 +403,7 @@ export default function HomePage() {
               <StatCounter value={stats.completed} label="Completed" color="#2ed573" />
             </div>
             <div className="pl-8">
-              <StatCounter value={stats.high} label="High Priority" color="#ff4757" />
+              <StatCounter value={stats.documented} label="Documented" color="#ffa502" />
             </div>
           </div>
         </div>
@@ -415,7 +412,6 @@ export default function HomePage() {
       {/* ── Task list ── */}
       <section id="tasks-section" className="pb-32 px-4">
         <div className="max-w-3xl mx-auto">
-          {/* Header row */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-black gradient-text-blue-purple">Your Tasks</h2>
             <button
@@ -431,7 +427,6 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Filters */}
           <div className="flex gap-2 mb-6">
             {(['all', 'active', 'completed'] as const).map((f) => (
               <button
@@ -443,12 +438,16 @@ export default function HomePage() {
                     : 'text-white/50 hover:text-white glass border border-white/5'
                 }`}
               >
-                {f} {f === 'all' ? `(${stats.total})` : f === 'active' ? `(${stats.active})` : `(${stats.completed})`}
+                {f}{' '}
+                {f === 'all'
+                  ? `(${stats.total})`
+                  : f === 'active'
+                  ? `(${stats.active})`
+                  : `(${stats.completed})`}
               </button>
             ))}
           </div>
 
-          {/* Task cards */}
           <div className="space-y-3">
             {filtered.length === 0 ? (
               <div className="text-center py-20 text-white/30">
@@ -457,20 +456,31 @@ export default function HomePage() {
               </div>
             ) : (
               filtered.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={handleToggle} />
+                <div key={task.id} className="flex items-stretch gap-2">
+                  <div className="flex-1 min-w-0">
+                    <TaskCard task={task} onToggle={handleToggle} />
+                  </div>
+                  <Link
+                    href={`/tasks/${task.id}`}
+                    className="flex items-center px-3 glass rounded-2xl text-white/30 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 transition-all flex-shrink-0"
+                    title="View details & photos"
+                  >
+                    <ChevronRight size={18} />
+                  </Link>
+                </div>
               ))
             )}
           </div>
 
-          {/* AR CTA */}
+          {/* Scan CTA */}
           <div className="mt-12 glass-strong rounded-3xl p-8 text-center neon-border-blue relative overflow-hidden">
             <div className="lidar-scan-line opacity-30" />
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5" />
             <div className="relative">
-              <Scan size={40} className="mx-auto mb-4 text-cyan-400" />
-              <h3 className="text-xl font-black mb-2 gradient-text-blue-purple">Ready to go spatial?</h3>
+              <Camera size={40} className="mx-auto mb-4 text-cyan-400" />
+              <h3 className="text-xl font-black mb-2 gradient-text-blue-purple">Ready to document?</h3>
               <p className="text-white/50 text-sm mb-6 max-w-sm mx-auto">
-                Open AR Mode on Safari to place these tasks in your real-world environment using LiDAR.
+                Open Scan Mode to capture before & after photos for your tasks. Works right in Safari.
               </p>
               <Link
                 href="/ar"
@@ -480,8 +490,8 @@ export default function HomePage() {
                   boxShadow: '0 0 30px rgba(0,212,255,0.4)',
                 }}
               >
-                <Scan size={18} />
-                Launch AR Experience
+                <Camera size={18} />
+                Open Scan Mode
               </Link>
             </div>
           </div>

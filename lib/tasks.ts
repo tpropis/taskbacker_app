@@ -11,6 +11,9 @@ export interface Task {
   dueDate?: string;
   arPlaced?: boolean;
   createdAt: string;
+  beforePhoto?: string;
+  afterPhoto?: string;
+  notes?: string;
 }
 
 const STORAGE_KEY = 'taskbacker_tasks';
@@ -66,8 +69,8 @@ const defaultTasks: Task[] = [
   },
   {
     id: '6',
-    title: 'LiDAR integration testing',
-    description: 'Test AR task placement on iPhone 15 Pro and iPad Pro',
+    title: 'Document server room wiring',
+    description: 'Photograph before/after the cable management cleanup',
     priority: 'high',
     completed: false,
     category: 'Engineering',
