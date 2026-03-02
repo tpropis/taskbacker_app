@@ -362,6 +362,13 @@ export default function LiDARScanner() {
       setIsARActive(true);
 
       // 5. Render loop
+      // Pre-allocate orientation helpers outside the loop to avoid GC pressure.
+      // orientQ1 is the -90° correction around X that maps device-flat → camera-forward
+      // (same fix used by THREE.DeviceOrientationControls).
+      const orientEuler = new THREE.Euler();
+      const orientQ0 = new THREE.Quaternion();
+      const orientQ1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+
       const animate = () => {
         animFrameRef.current = requestAnimationFrame(animate);
         const elapsed = clockRef.current?.getElapsedTime() ?? 0;
@@ -369,14 +376,16 @@ export default function LiDARScanner() {
         // Update camera from device orientation
         const o = orientRef.current;
         if (o && o.alpha !== null && o.beta !== null && o.gamma !== null) {
-          // Standard conversion: portrait mode, sensor → camera axes
-          const euler = new THREE.Euler(
+          orientEuler.set(
             THREE.MathUtils.degToRad(o.beta),
             THREE.MathUtils.degToRad(o.alpha),
             THREE.MathUtils.degToRad(-o.gamma),
             'YXZ',
           );
-          camera.quaternion.setFromEuler(euler);
+          orientQ0.setFromEuler(orientEuler);
+          // Multiply by orientQ1 so the camera looks at the horizon (not the sky)
+          // when the phone is held upright in portrait mode.
+          camera.quaternion.copy(orientQ0.multiply(orientQ1));
         }
 
         // Animate task cards: float + always face camera
@@ -583,7 +592,7 @@ export default function LiDARScanner() {
 
         {/* ── Placed count badge ── */}
         {placedTasks.length > 0 && (
-          <div className="absolute top-24 right-4 px-3 py-1.5 glass rounded-full border border-white/10 text-xs text-white/60">
+          <div className="absolute top-24 left-4 px-3 py-1.5 glass rounded-full border border-white/10 text-xs text-white/60">
             {placedTasks.length} placed
           </div>
         )}
