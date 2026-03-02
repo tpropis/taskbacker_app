@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 
-// LiDARScanner uses Three.js + WebXR — must be client-side only
+// ScanMode uses camera APIs — must be client-side only
 const LiDARScanner = dynamic(() => import('@/components/LiDARScanner'), {
   ssr: false,
   loading: () => (
