@@ -15,38 +15,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Scan, X, ChevronUp, ChevronDown, Crosshair, Info } from 'lucide-react';
 import { Task, getTasks, saveTasks, getPriorityColor } from '@/lib/tasks';
 
-// ── Turbo colormap (kept for landing page depth preview) ─────────────────────
-const TURBO_ANCHORS: [number, number, number, number][] = [
-  [0.0,  48,  18,  59],
-  [0.1,  72,  84, 185],
-  [0.2,  46, 147, 229],
-  [0.3,  29, 197, 177],
-  [0.4,  71, 227, 105],
-  [0.5, 163, 239,  40],
-  [0.6, 233, 225,  40],
-  [0.7, 253, 167,  14],
-  [0.8, 237,  89,  12],
-  [0.9, 195,  27,   0],
-  [1.0, 122,   4,   3],
-];
-
-function turboColor(t: number): [number, number, number] {
-  const clamped = Math.max(0, Math.min(1, t));
-  for (let i = 0; i < TURBO_ANCHORS.length - 1; i++) {
-    const [t0, r0, g0, b0] = TURBO_ANCHORS[i];
-    const [t1, r1, g1, b1] = TURBO_ANCHORS[i + 1];
-    if (clamped >= t0 && clamped <= t1) {
-      const s = (clamped - t0) / (t1 - t0);
-      return [
-        Math.round(r0 + s * (r1 - r0)),
-        Math.round(g0 + s * (g1 - g0)),
-        Math.round(b0 + s * (b1 - b0)),
-      ];
-    }
-  }
-  return [122, 4, 3];
-}
-
 // ── Draw a task card onto a canvas (used for Three.js CanvasTexture) ─────────
 function drawTaskCard(
   canvas: HTMLCanvasElement,
@@ -151,15 +119,15 @@ export default function LiDARScanner() {
   const orientHandlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
   const threeRef       = useRef<typeof import('three') | null>(null);
 
-  const [tasks, setTasks]             = useState<Task[]>([]);
+  const [tasks, setTasks]               = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isARSupported, setIsARSupported] = useState<boolean | null>(null);
   const [arUnsupportedReason, setArUnsupportedReason] = useState<string>('');
   const [arStartError, setArStartError] = useState<string>('');
-  const [isARActive, setIsARActive]   = useState(false);
-  const [placedTasks, setPlacedTasks] = useState<PlacedTask[]>([]);
-  const [showInfo, setShowInfo]       = useState(false);
-  const [statusMsg, setStatusMsg]     = useState('Point your camera and tap to place tasks');
+  const [isARActive, setIsARActive]     = useState(false);
+  const [placedTasks, setPlacedTasks]   = useState<PlacedTask[]>([]);
+  const [showInfo, setShowInfo]         = useState(false);
+  const [statusMsg, setStatusMsg]       = useState('Point your camera and tap to place tasks');
   const [taskPanelOpen, setTaskPanelOpen] = useState(true);
 
   // ── Load tasks on mount ─────────────────────────────────────────────────────
@@ -320,6 +288,7 @@ export default function LiDARScanner() {
       streamRef.current = stream;
 
       // 2. Video element as background
+      //    containerRef is always mounted (visibility:hidden when inactive) so this is safe.
       const video = document.createElement('video');
       video.srcObject = stream;
       video.autoplay = true;
@@ -406,7 +375,7 @@ export default function LiDARScanner() {
 
       // Surface a human-readable error so the user knows what went wrong
       const name = (err instanceof Error) ? err.name : '';
-      const msg = (err instanceof Error) ? err.message : String(err);
+      const msg  = (err instanceof Error) ? err.message : String(err);
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
         setArStartError('Camera permission denied. Go to Settings → Safari → Camera and set it to Allow, then refresh.');
       } else if (name === 'NotFoundError') {
@@ -461,215 +430,222 @@ export default function LiDARScanner() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
+  //
+  // The AR container div (ref={containerRef}) must ALWAYS be in the DOM so
+  // startAR() can access it synchronously before isARActive flips to true.
+  // It is hidden via visibility:hidden when inactive — this keeps it mounted
+  // without affecting the layout or blocking interaction.
   // ─────────────────────────────────────────────────────────────────────────────
-
-  // ── Landing page ─────────────────────────────────────────────────────────────
-  if (!isARActive) {
-    return (
-      <div className="relative min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 depth-grid" />
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-950/40 via-black to-cyan-950/30" />
-        <div className="lidar-scan-line" />
-
-        <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="relative z-10 text-center px-6 max-w-lg">
-          <div className="mx-auto w-24 h-24 mb-8 relative">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-600/20 border border-cyan-500/30 animate-pulse-glow" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Scan size={44} className="text-cyan-400" />
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-black mb-3 gradient-text">AR Mode</h1>
-          <p className="text-white/60 mb-2 text-base leading-relaxed">
-            Place tasks in your physical space using your iPhone camera.
-          </p>
-
-          {/* Runtime error (from actually trying to start AR) */}
-          {arStartError && (
-            <div className="my-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-              <strong>Could not start AR</strong>
-              <span className="block mt-1 text-red-300">{arStartError}</span>
-            </div>
-          )}
-
-          {/* Pre-flight warning (non-blocking) */}
-          {!arStartError && isARSupported === false && (
-            <div className="my-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm">
-              <strong>Camera may not be available</strong>
-              <br />
-              {arUnsupportedReason && (
-                <span className="block mt-1 text-orange-300">{arUnsupportedReason}</span>
-              )}
-              <span className="block mt-2 text-orange-400/70">
-                You can still tap below to try — Safari will ask for permission if needed.
-              </span>
-            </div>
-          )}
-
-          {!arStartError && isARSupported === true && (
-            <div className="my-6 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400/80 text-sm leading-relaxed">
-              ✓ Ready on your iPhone
-              <br />
-              Point your camera and tap to place tasks in the real world
-            </div>
-          )}
-
-          <button
-            onClick={() => { setArStartError(''); startAR(); }}
-            disabled={isARSupported === null}
-            className="w-full py-4 rounded-2xl font-bold text-lg text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)',
-              boxShadow: '0 0 60px rgba(0,212,255,0.4)',
-            }}
-          >
-            {isARSupported === null ? 'Checking device…' : '⬡  Enter AR Space'}
-          </button>
-
-          {isARSupported === null && (
-            <p className="text-white/30 text-xs mt-3">Querying camera capability…</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Active AR view ───────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-transparent" ref={containerRef}>
-      {/* Camera video (z-index 0) and Three.js canvas (z-index 1) injected by startAR */}
+    <>
+      {/* ── Landing page (shown when AR is not active) ── */}
+      {!isARActive && (
+        <div className="relative min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 depth-grid" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-950/40 via-black to-cyan-950/30" />
+          <div className="lidar-scan-line" />
 
-      {/* DOM overlay — above the 3D canvas */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+          <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-        {/* ── Top bar ── */}
-        <div className="pointer-events-auto absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-cyan-400 text-sm font-bold">AR MODE</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowInfo((v) => !v)}
-              className="p-2 rounded-full glass border border-white/10"
-            >
-              <Info size={16} className="text-white/60" />
-            </button>
-            <button
-              onClick={endAR}
-              className="p-2 rounded-full bg-red-500/20 border border-red-500/30 text-red-400"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Info panel ── */}
-        {showInfo && (
-          <div className="pointer-events-auto absolute top-24 right-4 w-64 glass-strong rounded-2xl p-4 border border-white/10 text-xs text-white/70 space-y-2">
-            <p className="font-bold text-white mb-1">AR Controls</p>
-            <p>• Select a task in the panel below</p>
-            <p>• Point your camera where you want it</p>
-            <p>• Tap ⊕ Place to drop the task card there</p>
-            <p>• Rotate your phone to look around placed tasks</p>
-          </div>
-        )}
-
-        {/* ── Centre crosshair ── */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Crosshair size={40} className="text-cyan-400/60" />
-        </div>
-
-        {/* ── Status message ── */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 mt-12 pointer-events-none">
-          <div className="px-4 py-2 glass rounded-full text-xs text-white/70 border border-white/10 whitespace-nowrap">
-            {statusMsg}
-          </div>
-        </div>
-
-        {/* ── Placed count badge ── */}
-        {placedTasks.length > 0 && (
-          <div className="absolute top-24 left-4 px-3 py-1.5 glass rounded-full border border-white/10 text-xs text-white/60">
-            {placedTasks.length} placed
-          </div>
-        )}
-
-        {/* ── Task selector panel ── */}
-        <div className="pointer-events-auto absolute bottom-0 left-0 right-0">
-          <div className="flex justify-center mb-1">
-            <button
-              onClick={() => setTaskPanelOpen((v) => !v)}
-              className="px-6 py-1.5 glass rounded-full border border-white/10 text-white/50 flex items-center gap-1 text-xs"
-            >
-              {taskPanelOpen ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-              Tasks
-            </button>
-          </div>
-
-          {taskPanelOpen && (
-            <div className="glass-strong border-t border-white/10 px-4 pt-4 pb-8">
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-3">
-                Select a task to place
-              </p>
-
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {tasks.length === 0 ? (
-                  <p className="text-white/30 text-sm">No tasks. Add some on the dashboard.</p>
-                ) : (
-                  tasks.map((task) => {
-                    const color = getPriorityColor(task.priority);
-                    const isSelected = selectedTask?.id === task.id;
-                    const isPlaced = placedTasks.some((p) => p.taskId === task.id);
-                    return (
-                      <button
-                        key={task.id}
-                        onClick={() => setSelectedTask(isSelected ? null : task)}
-                        className="flex-shrink-0 flex flex-col gap-1 p-3 rounded-xl min-w-[140px] text-left transition-all"
-                        style={{
-                          background: isSelected ? color + '22' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${isSelected ? color + 'aa' : 'rgba(255,255,255,0.1)'}`,
-                          boxShadow: isSelected ? `0 0 20px ${color}44` : 'none',
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                          <span className="text-xs font-bold" style={{ color }}>
-                            {task.priority.toUpperCase()}
-                          </span>
-                          {isPlaced && <span className="text-cyan-400 text-xs ml-auto">◉</span>}
-                        </div>
-                        <p className="text-white text-xs font-medium line-clamp-2 leading-snug">
-                          {task.title}
-                        </p>
-                      </button>
-                    );
-                  })
-                )}
+          <div className="relative z-10 text-center px-6 max-w-lg">
+            <div className="mx-auto w-24 h-24 mb-8 relative">
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-purple-600/20 border border-cyan-500/30 animate-pulse-glow" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Scan size={44} className="text-cyan-400" />
               </div>
+            </div>
 
-              <div className="mt-4">
+            <h1 className="text-4xl font-black mb-3 gradient-text">AR Mode</h1>
+            <p className="text-white/60 mb-2 text-base leading-relaxed">
+              Place tasks in your physical space using your iPhone camera.
+            </p>
+
+            {arStartError && (
+              <div className="my-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                <strong>Could not start AR</strong>
+                <span className="block mt-1 text-red-300">{arStartError}</span>
+              </div>
+            )}
+
+            {!arStartError && isARSupported === false && (
+              <div className="my-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm">
+                <strong>Camera may not be available</strong>
+                <br />
+                {arUnsupportedReason && (
+                  <span className="block mt-1 text-orange-300">{arUnsupportedReason}</span>
+                )}
+                <span className="block mt-2 text-orange-400/70">
+                  You can still tap below to try — Safari will ask for permission if needed.
+                </span>
+              </div>
+            )}
+
+            {!arStartError && isARSupported === true && (
+              <div className="my-6 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400/80 text-sm leading-relaxed">
+                ✓ Ready on your iPhone
+                <br />
+                Point your camera and tap to place tasks in the real world
+              </div>
+            )}
+
+            <button
+              onClick={() => { setArStartError(''); startAR(); }}
+              disabled={isARSupported === null}
+              className="w-full py-4 rounded-2xl font-bold text-lg text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)',
+                boxShadow: '0 0 60px rgba(0,212,255,0.4)',
+              }}
+            >
+              {isARSupported === null ? 'Checking device…' : '⬡  Enter AR Space'}
+            </button>
+
+            {isARSupported === null && (
+              <p className="text-white/30 text-xs mt-3">Querying camera capability…</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── AR container — always mounted so containerRef is valid when startAR runs ── */}
+      <div
+        ref={containerRef}
+        className="fixed inset-0 bg-transparent"
+        style={{ visibility: isARActive ? 'visible' : 'hidden' }}
+      >
+        {/* Camera video (z-index 0) and Three.js canvas (z-index 1) injected by startAR */}
+
+        {isARActive && (
+          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+
+            {/* ── Top bar ── */}
+            <div className="pointer-events-auto absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-cyan-400 text-sm font-bold">AR MODE</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={placeTask}
-                  disabled={!selectedTask}
-                  className="w-full py-4 rounded-2xl font-bold text-base transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{
-                    background: selectedTask
-                      ? 'linear-gradient(135deg, #00d4ff, #8b5cf6)'
-                      : 'rgba(255,255,255,0.08)',
-                    color: selectedTask ? '#000' : 'rgba(255,255,255,0.4)',
-                    boxShadow: selectedTask ? '0 0 40px rgba(0,212,255,0.4)' : 'none',
-                  }}
+                  onClick={() => setShowInfo((v) => !v)}
+                  className="p-2 rounded-full glass border border-white/10"
                 >
-                  {!selectedTask ? 'Select a task above' : `⊕  Place "${selectedTask.title}"`}
+                  <Info size={16} className="text-white/60" />
+                </button>
+                <button
+                  onClick={endAR}
+                  className="p-2 rounded-full bg-red-500/20 border border-red-500/30 text-red-400"
+                >
+                  <X size={16} />
                 </button>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* ── Info panel ── */}
+            {showInfo && (
+              <div className="pointer-events-auto absolute top-24 right-4 w-64 glass-strong rounded-2xl p-4 border border-white/10 text-xs text-white/70 space-y-2">
+                <p className="font-bold text-white mb-1">AR Controls</p>
+                <p>• Select a task in the panel below</p>
+                <p>• Point your camera where you want it</p>
+                <p>• Tap ⊕ Place to drop the task card there</p>
+                <p>• Rotate your phone to look around placed tasks</p>
+              </div>
+            )}
+
+            {/* ── Centre crosshair ── */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Crosshair size={40} className="text-cyan-400/60" />
+            </div>
+
+            {/* ── Status message ── */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 mt-12 pointer-events-none">
+              <div className="px-4 py-2 glass rounded-full text-xs text-white/70 border border-white/10 whitespace-nowrap">
+                {statusMsg}
+              </div>
+            </div>
+
+            {/* ── Placed count badge ── */}
+            {placedTasks.length > 0 && (
+              <div className="absolute top-24 left-4 px-3 py-1.5 glass rounded-full border border-white/10 text-xs text-white/60">
+                {placedTasks.length} placed
+              </div>
+            )}
+
+            {/* ── Task selector panel ── */}
+            <div className="pointer-events-auto absolute bottom-0 left-0 right-0">
+              <div className="flex justify-center mb-1">
+                <button
+                  onClick={() => setTaskPanelOpen((v) => !v)}
+                  className="px-6 py-1.5 glass rounded-full border border-white/10 text-white/50 flex items-center gap-1 text-xs"
+                >
+                  {taskPanelOpen ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+                  Tasks
+                </button>
+              </div>
+
+              {taskPanelOpen && (
+                <div className="glass-strong border-t border-white/10 px-4 pt-4 pb-8">
+                  <p className="text-xs text-white/40 uppercase tracking-wider mb-3">
+                    Select a task to place
+                  </p>
+
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {tasks.length === 0 ? (
+                      <p className="text-white/30 text-sm">No tasks. Add some on the dashboard.</p>
+                    ) : (
+                      tasks.map((task) => {
+                        const color = getPriorityColor(task.priority);
+                        const isSelected = selectedTask?.id === task.id;
+                        const isPlaced = placedTasks.some((p) => p.taskId === task.id);
+                        return (
+                          <button
+                            key={task.id}
+                            onClick={() => setSelectedTask(isSelected ? null : task)}
+                            className="flex-shrink-0 flex flex-col gap-1 p-3 rounded-xl min-w-[140px] text-left transition-all"
+                            style={{
+                              background: isSelected ? color + '22' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${isSelected ? color + 'aa' : 'rgba(255,255,255,0.1)'}`,
+                              boxShadow: isSelected ? `0 0 20px ${color}44` : 'none',
+                            }}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                              <span className="text-xs font-bold" style={{ color }}>
+                                {task.priority.toUpperCase()}
+                              </span>
+                              {isPlaced && <span className="text-cyan-400 text-xs ml-auto">◉</span>}
+                            </div>
+                            <p className="text-white text-xs font-medium line-clamp-2 leading-snug">
+                              {task.title}
+                            </p>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      onClick={placeTask}
+                      disabled={!selectedTask}
+                      className="w-full py-4 rounded-2xl font-bold text-base transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        background: selectedTask
+                          ? 'linear-gradient(135deg, #00d4ff, #8b5cf6)'
+                          : 'rgba(255,255,255,0.08)',
+                        color: selectedTask ? '#000' : 'rgba(255,255,255,0.4)',
+                        boxShadow: selectedTask ? '0 0 40px rgba(0,212,255,0.4)' : 'none',
+                      }}
+                    >
+                      {!selectedTask ? 'Select a task above' : `⊕  Place "${selectedTask.title}"`}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
