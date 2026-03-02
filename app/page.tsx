@@ -340,7 +340,7 @@ export default function HomePage() {
                 icon: <CheckSquare size={28} />,
                 color: '#2ed573',
                 title: 'Completion Tracking',
-                desc: 'Tasks marked complete only when documented. No more "I think it's done" ambiguity.',
+                desc: "Tasks marked complete only when documented. No more \"I think it's done\" ambiguity.",
               },
               {
                 icon: <Zap size={28} />,
