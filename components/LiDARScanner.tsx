@@ -179,7 +179,7 @@ export default function LiDARScanner() {
       setArUnsupportedReason('Page must be loaded over HTTPS. Check your URL starts with https://');
       return;
     }
-    if (navigator.mediaDevices?.getUserMedia) {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
       setIsARSupported(true);
     } else {
       setIsARSupported(false);
