@@ -72,8 +72,9 @@ Respond with ONLY valid JSON, no markdown:
     }
 
     return NextResponse.json(result);
-  } catch (err) {
-    console.error('Analyze error:', err);
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Analyze error:', message);
+    return NextResponse.json({ error: 'Analysis failed', detail: message }, { status: 500 });
   }
 }
