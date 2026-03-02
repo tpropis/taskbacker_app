@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle } from 'lucide-react';
 import { Task, getTasks, saveTasks, getPriorityColor, getCategoryIcon } from '@/lib/tasks';
 
 type ScanPhase = 'selecting' | 'scanning' | 'review';
@@ -58,12 +58,22 @@ export default function ScanMode() {
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
+  // Attach stream to <video> AFTER React renders the scanning phase
+  useEffect(() => {
+    if (phase !== 'scanning' || !streamRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
+    video.srcObject = streamRef.current;
+    video.play()
+      .then(() => setCameraReady(true))
+      .catch(() => setCameraReady(true));
+  }, [phase]);
+
   const startCamera = useCallback(async (task: Task) => {
     setCameraError('');
     setCameraReady(false);
     setSelectedTask(task);
     setCaptureTarget(task.beforePhoto ? 'after' : 'before');
-    setPhase('scanning');
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -71,16 +81,8 @@ export default function ScanMode() {
         audio: false,
       });
       streamRef.current = stream;
-
-      // Attach stream once DOM has rendered the <video>
-      requestAnimationFrame(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play()
-            .then(() => setCameraReady(true))
-            .catch(() => setCameraReady(true));
-        }
-      });
+      // setPhase AFTER stream is ready so the useEffect above can attach immediately
+      setPhase('scanning');
     } catch (err) {
       stopCamera();
       setPhase('selecting');
