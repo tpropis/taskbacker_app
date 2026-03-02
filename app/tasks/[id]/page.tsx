@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Camera, Clock, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Camera, Clock, RotateCcw, TrendingUp } from 'lucide-react';
 import Header from '@/components/Header';
 import {
   getTasks, saveTasks,
@@ -11,7 +11,18 @@ import {
   type Task,
 } from '@/lib/tasks';
 
-// ── Resize an image File to a max dimension, returns base64 data URL ─────────
+function scoreColor(score: number): string {
+  if (score >= 80) return '#16a34a';
+  if (score >= 60) return '#ea580c';
+  return '#dc2626';
+}
+
+function scoreBg(score: number): string {
+  if (score >= 80) return 'bg-green-50 border-green-200 text-green-700';
+  if (score >= 60) return 'bg-orange-50 border-orange-200 text-orange-700';
+  return 'bg-red-50 border-red-200 text-red-700';
+}
+
 function resizeImage(file: File, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve) => {
     const img = new window.Image();
@@ -75,7 +86,6 @@ export default function TaskDetailPage() {
         persist(target === 'before' ? { beforePhoto: dataURL } : { afterPhoto: dataURL });
       } finally {
         setSaving(false);
-        // Reset input so same file can be re-selected
         e.target.value = '';
       }
     },
@@ -97,9 +107,19 @@ export default function TaskDetailPage() {
 
   const priorityColor = getPriorityColor(task.priority);
   const bothPhotos = !!task.beforePhoto && !!task.afterPhoto;
+  const improvement =
+    task.beforeScore !== undefined && task.afterScore !== undefined
+      ? task.afterScore - task.beforeScore
+      : null;
+
+  const priorityBadgeStyle: Record<string, string> = {
+    high: 'bg-red-50 border border-red-200 text-red-700',
+    medium: 'bg-orange-50 border border-orange-200 text-orange-700',
+    low: 'bg-green-50 border border-green-200 text-green-700',
+  };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* Hidden file inputs */}
@@ -120,165 +140,223 @@ export default function TaskDetailPage() {
         onChange={(e) => handlePhotoCapture(e, 'after')}
       />
 
-      <main className="max-w-xl mx-auto px-4 pt-24 pb-32">
+      <main className="max-w-xl mx-auto px-4 pt-20 pb-24">
         {/* Back */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-white text-sm mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm mb-5 transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
           All Tasks
         </Link>
 
         {/* Task header card */}
-        <div
-          className="glass rounded-2xl p-5 mb-4"
-          style={{ borderLeft: `3px solid ${priorityColor}` }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: priorityColor + '22', color: priorityColor }}
-            >
-              {task.priority.toUpperCase()}
-            </span>
-            <span className="text-xs text-white/40">
-              {getCategoryIcon(task.category)} {task.category}
-            </span>
-            {task.completed && (
-              <span className="ml-auto text-xs font-bold text-emerald-400">✓ Complete</span>
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4">
+          <div className="h-1" style={{ backgroundColor: priorityColor }} />
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${priorityBadgeStyle[task.priority]}`}>
+                {task.priority}
+              </span>
+              <span className="text-xs text-gray-400">
+                {getCategoryIcon(task.category)} {task.category}
+              </span>
+              {task.completed && (
+                <span className="ml-auto text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-0.5 rounded-full">
+                  ✓ Complete
+                </span>
+              )}
+            </div>
+
+            <h1 className="text-xl font-bold text-gray-900 mb-2 leading-snug">{task.title}</h1>
+
+            {task.description && (
+              <p className="text-sm text-gray-500 leading-relaxed mb-3">{task.description}</p>
+            )}
+
+            {task.dueDate && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <Clock size={11} />
+                {formatDueDate(task.dueDate)}
+              </div>
             )}
           </div>
-
-          <h1 className="text-xl font-bold text-white mb-2 leading-snug">{task.title}</h1>
-
-          {task.description && (
-            <p className="text-sm text-white/55 leading-relaxed mb-3">{task.description}</p>
-          )}
-
-          {task.dueDate && (
-            <div className="flex items-center gap-1.5 text-xs text-white/35">
-              <Clock size={11} />
-              {formatDueDate(task.dueDate)}
-            </div>
-          )}
         </div>
 
-        {/* ── Documentation section ── */}
-        <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 mt-6">
-          Documentation
-        </h2>
+        {/* Score comparison (if both scanned) */}
+        {improvement !== null && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp size={15} className="text-gray-400" />
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Scan Results</p>
+            </div>
+            <div className="flex items-center justify-around">
+              <div className="text-center">
+                <div className="text-3xl font-black" style={{ color: scoreColor(task.beforeScore!) }}>
+                  {task.beforeScore}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">Before</div>
+              </div>
+              <div className="text-center">
+                <div
+                  className="text-2xl font-black"
+                  style={{ color: improvement >= 0 ? '#16a34a' : '#dc2626' }}
+                >
+                  {improvement >= 0 ? '+' : ''}{improvement}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">Change</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black" style={{ color: scoreColor(task.afterScore!) }}>
+                  {task.afterScore}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">After</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Before scan summary */}
+        {task.beforeAnalysis && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Before Scan — AI Findings</p>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${scoreBg(task.beforeScore ?? 0)}`}>
+                Score: {task.beforeScore}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 mb-1">{task.beforeAnalysis.headline}</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-3">{task.beforeAnalysis.summary}</p>
+            {task.beforeAnalysis.findings.length > 0 && (
+              <div className="space-y-1.5">
+                {task.beforeAnalysis.findings.map((f, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-red-400 mt-0.5 flex-shrink-0">•</span>
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* After scan summary */}
+        {task.afterAnalysis && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">After Scan — AI Findings</p>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${scoreBg(task.afterScore ?? 0)}`}>
+                Score: {task.afterScore}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 mb-1">{task.afterAnalysis.headline}</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-3">{task.afterAnalysis.summary}</p>
+            {task.afterAnalysis.findings.length > 0 && (
+              <div className="space-y-1.5">
+                {task.afterAnalysis.findings.map((f, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Documentation ── */}
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-2">Photos</p>
 
         {/* Before photo */}
-        <div className="glass rounded-2xl overflow-hidden mb-3">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-            <span className="text-sm font-semibold text-white">Before</span>
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-3">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-900">Before Photo</span>
             <div className="flex items-center gap-2">
               {task.beforePhoto && (
                 <button
                   onClick={() => beforeInputRef.current?.click()}
-                  className="text-white/35 hover:text-white/70 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                   title="Retake"
                 >
                   <RotateCcw size={13} />
                 </button>
               )}
-              <span className={`text-xs font-medium ${task.beforePhoto ? 'text-emerald-400' : 'text-white/30'}`}>
+              <span className={`text-xs font-medium ${task.beforePhoto ? 'text-green-600' : 'text-gray-400'}`}>
                 {task.beforePhoto ? '✓ Captured' : 'Not captured'}
               </span>
             </div>
           </div>
-
           {task.beforePhoto ? (
-            <img
-              src={task.beforePhoto}
-              alt="Before"
-              className="w-full aspect-video object-cover"
-            />
+            <img src={task.beforePhoto} alt="Before" className="w-full aspect-video object-cover" />
           ) : (
             <button
               onClick={() => beforeInputRef.current?.click()}
               disabled={saving}
-              className="w-full py-10 flex flex-col items-center gap-3 text-white/30 hover:text-white/60 transition-colors active:bg-white/5"
+              className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
             >
-              <Camera size={32} />
-              <span className="text-sm font-medium">Capture the problem</span>
-              <span className="text-xs text-white/20">Tap to open camera</span>
+              <Camera size={28} />
+              <span className="text-sm font-medium">Capture before photo</span>
+              <span className="text-xs text-gray-400">Tap to open camera</span>
             </button>
           )}
         </div>
 
         {/* After photo — only shown if before exists */}
         {task.beforePhoto && (
-          <div className="glass rounded-2xl overflow-hidden mb-4">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <span className="text-sm font-semibold text-white">After</span>
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-semibold text-gray-900">After Photo</span>
               <div className="flex items-center gap-2">
                 {task.afterPhoto && (
                   <button
                     onClick={() => afterInputRef.current?.click()}
-                    className="text-white/35 hover:text-white/70 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
                     title="Retake"
                   >
                     <RotateCcw size={13} />
                   </button>
                 )}
-                <span className={`text-xs font-medium ${task.afterPhoto ? 'text-emerald-400' : 'text-white/30'}`}>
+                <span className={`text-xs font-medium ${task.afterPhoto ? 'text-green-600' : 'text-gray-400'}`}>
                   {task.afterPhoto ? '✓ Captured' : 'Not captured'}
                 </span>
               </div>
             </div>
-
             {task.afterPhoto ? (
-              <img
-                src={task.afterPhoto}
-                alt="After"
-                className="w-full aspect-video object-cover"
-              />
+              <img src={task.afterPhoto} alt="After" className="w-full aspect-video object-cover" />
             ) : (
               <button
                 onClick={() => afterInputRef.current?.click()}
                 disabled={saving}
-                className="w-full py-10 flex flex-col items-center gap-3 text-white/30 hover:text-white/60 transition-colors active:bg-white/5"
+                className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
               >
-                <Camera size={32} />
-                <span className="text-sm font-medium">Capture the solution</span>
-                <span className="text-xs text-white/20">Tap to open camera</span>
+                <Camera size={28} />
+                <span className="text-sm font-medium">Capture after photo</span>
+                <span className="text-xs text-gray-400">Take this after completing the fix</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Side-by-side review (when both photos exist) */}
+        {/* Side-by-side review */}
         {bothPhotos && (
           <div className="mb-4">
-            <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
-              Review
-            </h2>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Side-by-Side</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xs text-white/35 text-center mb-1.5">Before</p>
-                <img
-                  src={task.beforePhoto!}
-                  alt="Before"
-                  className="w-full aspect-video object-cover rounded-xl"
-                />
+                <p className="text-xs text-gray-500 text-center mb-1.5 font-medium">Before</p>
+                <img src={task.beforePhoto!} alt="Before" className="w-full aspect-video object-cover rounded-xl border border-gray-200" />
               </div>
               <div>
-                <p className="text-xs text-white/35 text-center mb-1.5">After</p>
-                <img
-                  src={task.afterPhoto!}
-                  alt="After"
-                  className="w-full aspect-video object-cover rounded-xl"
-                />
+                <p className="text-xs text-gray-500 text-center mb-1.5 font-medium">After</p>
+                <img src={task.afterPhoto!} alt="After" className="w-full aspect-video object-cover rounded-xl border border-gray-200" />
               </div>
             </div>
           </div>
         )}
 
         {/* Notes */}
-        <div className="glass rounded-2xl p-4 mb-6">
-          <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-3">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-5">
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
             Notes
           </label>
           <textarea
@@ -287,7 +365,7 @@ export default function TaskDetailPage() {
             onBlur={saveNotes}
             placeholder="Add notes about this task..."
             rows={4}
-            className="w-full bg-transparent text-white/80 text-sm placeholder-white/20 focus:outline-none resize-none leading-relaxed"
+            className="w-full text-gray-700 text-sm placeholder-gray-400 focus:outline-none resize-none leading-relaxed"
           />
         </div>
 
@@ -295,27 +373,18 @@ export default function TaskDetailPage() {
         <div className="space-y-3">
           <button
             onClick={toggleComplete}
-            className="w-full py-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
-            style={
+            className={`w-full py-4 rounded-xl font-bold text-sm transition-all active:scale-95 ${
               task.completed
-                ? {
-                    background: 'rgba(255,255,255,0.07)',
-                    color: 'rgba(255,255,255,0.55)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                  }
-                : {
-                    background: 'linear-gradient(135deg, #2ed573, #00d4ff)',
-                    color: '#000',
-                    boxShadow: '0 0 30px rgba(46,213,115,0.3)',
-                  }
-            }
+                ? 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
             {task.completed ? '↩ Mark as Active' : '✓ Mark as Complete'}
           </button>
 
           <button
             onClick={deleteTask}
-            className="w-full py-3 rounded-2xl text-sm text-red-500/50 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+            className="w-full py-3 rounded-xl text-sm text-red-500 hover:text-red-600 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
           >
             Delete task
           </button>

@@ -11,12 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    // Strip data URL prefix if present
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 512,
+      max_tokens: 800,
       messages: [
         {
           role: 'user',
@@ -31,23 +30,26 @@ export async function POST(req: NextRequest) {
             },
             {
               type: 'text',
-              text: `You are TaskBacker AI — a professional task and quality inspector.
+              text: `You are TaskBacker AI — a professional inspector and quality rater.
 
-Analyze this image${context ? ` in the context of: "${context}"` : ''}.
+Analyze this image${context ? ` for the task: "${context}"` : ''}.
 
-Score the quality/condition from 0–100:
-- 0–30: Critical problems, urgent action needed
-- 31–60: Significant issues present
-- 61–80: Acceptable but room for improvement
-- 81–100: Good to excellent condition
+Score the overall quality/condition from 0–100:
+- 0–30: Critical — major problems, unsafe or unacceptable
+- 31–50: Poor — significant issues need addressing
+- 51–70: Needs work — problems present but manageable
+- 71–85: Good — minor issues, mostly acceptable
+- 86–100: Excellent — clean, complete, professional
 
-Respond with ONLY valid JSON, no markdown:
+Be specific and precise. Look at cleanliness, completeness, safety, workmanship, and condition.
+
+Respond ONLY with valid JSON (no markdown, no code fences):
 {
-  "score": <number 0-100>,
-  "grade": <"F"|"D"|"C"|"B"|"A">,
-  "headline": <one punchy sentence max 8 words>,
-  "summary": <1-2 sentences describing what you see>,
-  "findings": [<up to 3 short bullet strings>]
+  "score": <integer 0-100>,
+  "grade": <"A"|"B"|"C"|"D"|"F">,
+  "headline": <concise verdict, max 8 words>,
+  "summary": <2-3 sentences describing exactly what you see and why you gave this score>,
+  "findings": [<5 specific observations about what is good or bad, each 1 short sentence>]
 }`,
             },
           ],
@@ -61,7 +63,6 @@ Respond with ONLY valid JSON, no markdown:
     try {
       result = JSON.parse(text);
     } catch {
-      // Fallback if JSON parse fails
       result = {
         score: 72,
         grade: 'B',
@@ -72,8 +73,9 @@ Respond with ONLY valid JSON, no markdown:
     }
 
     return NextResponse.json(result);
-  } catch (err) {
-    console.error('Analyze error:', err);
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Analyze error:', message);
+    return NextResponse.json({ error: 'Analysis failed', detail: message }, { status: 500 });
   }
 }
