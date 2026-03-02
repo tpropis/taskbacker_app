@@ -361,7 +361,7 @@ export default function HomePage() {
                 icon: <Eye size={28} />,
                 color: '#00d4ff',
                 title: 'Safari Native',
-                desc: 'Built on WebXR. Opens directly in Safari on iPhone and iPad — no app install required.',
+                desc: 'Works directly in Safari on iPhone and iPad using the camera — no app install required.',
               },
             ].map((feature) => (
               <div
