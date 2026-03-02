@@ -6,17 +6,17 @@ import { LayoutDashboard, Camera } from 'lucide-react';
 
 function TaskBackerLogo() {
   return (
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="8" fill="#1e293b" />
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="36" height="36" rx="11" fill="#4f46e5" />
       <path
-        d="M16 5L7 9V16C7 21.5 11 26.1 16 27.5C21 26.1 25 21.5 25 16V9L16 5Z"
+        d="M18 6L8 11V19C8 25.5 12.5 30.5 18 32C23.5 30.5 28 25.5 28 19V11L18 6Z"
         fill="white"
-        fillOpacity="0.18"
+        fillOpacity="0.2"
       />
       <path
-        d="M11 16L14 19L21 12"
+        d="M12 19L15.5 22.5L24 14"
         stroke="white"
-        strokeWidth="2.2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -28,38 +28,38 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-      <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
+      <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3">
           <TaskBackerLogo />
-          <span className="font-bold text-base text-gray-900">TaskBacker</span>
+          <div className="leading-none">
+            <p className="font-black text-[15px] text-slate-900 tracking-tight">TaskBacker</p>
+            <p className="text-[11px] text-slate-400 mt-1 hidden sm:block">Document · Review · Complete</p>
+          </div>
         </Link>
 
-        {/* Nav */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5">
           <Link
             href="/"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[9px] text-sm transition-all ${
               pathname === '/'
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
             }`}
           >
-            <LayoutDashboard size={15} />
-            <span className="hidden sm:inline">Dashboard</span>
+            <LayoutDashboard size={14} />
+            <span>Tasks</span>
           </Link>
-
           <Link
             href="/ar"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[9px] text-sm transition-all ${
               pathname === '/ar' || pathname?.startsWith('/tasks')
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
             }`}
           >
-            <Camera size={15} />
-            <span className="hidden sm:inline">Scan</span>
+            <Camera size={14} />
+            <span>Scan</span>
           </Link>
         </nav>
       </div>
