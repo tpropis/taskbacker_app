@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import GhstAIChatbot from '@/components/GhstAIChatbot';
 
 export const metadata: Metadata = {
   title: 'TaskBacker — Document. Review. Complete.',
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-black text-white antialiased">
         {children}
+        <GhstAIChatbot />
       </body>
     </html>
   );
