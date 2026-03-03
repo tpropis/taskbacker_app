@@ -62,9 +62,9 @@ function friendlyError(err: unknown): { message: string; status: number } {
   return { message: raw, status: 500 };
 }
 
-async function callAPI(base64Data: string, context?: string, depthMeta?: DepthMeta) {
+async function callAPI(base64Data: string, context?: string, depthMeta?: DepthMeta, model = 'claude-sonnet-4-6') {
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model,
     max_tokens: 800,
     messages: [
       {
@@ -98,20 +98,31 @@ export async function POST(req: NextRequest) {
 
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-    // Retry once on rate-limit (429) with a short backoff
+    // Try sonnet → if rate-limited wait + retry → if quota/still failing, fall back to haiku
     let result;
     try {
       result = await callAPI(base64Data, context, depthMeta);
     } catch (firstErr: unknown) {
       const httpStatus = (firstErr && typeof firstErr === 'object' && 'status' in firstErr)
-        ? (firstErr as { status: number }).status
-        : 0;
+        ? (firstErr as { status: number }).status : 0;
       const raw = firstErr instanceof Error ? firstErr.message : String(firstErr);
-      const isRetryable = httpStatus === 429 || httpStatus === 529
-        || raw.toLowerCase().includes('rate_limit') || raw.toLowerCase().includes('rate limit');
-      if (isRetryable) {
+      const lower = raw.toLowerCase();
+      const isRateLimit = httpStatus === 429 || httpStatus === 529
+        || lower.includes('rate_limit') || lower.includes('rate limit');
+      const isQuota = httpStatus === 402
+        || lower.includes('quota') || lower.includes('credit') || lower.includes('billing');
+
+      if (isRateLimit) {
+        // Wait then retry sonnet; if it fails again, fall through to haiku
         await new Promise((r) => setTimeout(r, 3000));
-        result = await callAPI(base64Data, context, depthMeta);
+        try {
+          result = await callAPI(base64Data, context, depthMeta);
+        } catch {
+          result = await callAPI(base64Data, context, depthMeta, 'claude-haiku-4-5-20251001');
+        }
+      } else if (isQuota) {
+        // Quota exceeded on sonnet — try haiku which has its own quota tier
+        result = await callAPI(base64Data, context, depthMeta, 'claude-haiku-4-5-20251001');
       } else {
         throw firstErr;
       }

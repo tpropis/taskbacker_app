@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, CheckCircle, CheckCircle2, Loader2, TrendingUp } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Camera, CheckCircle, CheckCircle2, Loader2, TrendingUp } from 'lucide-react';
 import { Task, getTasks, saveTasks, getCategoryIcon } from '@/lib/tasks';
 
 // ── WebXR depth sensing type extensions ──────────────────────────────────────
@@ -154,7 +154,7 @@ function LiDARDepthOverlay({
   );
 }
 
-type ScanPhase = 'selecting' | 'scanning' | 'analyzing' | 'scored';
+type ScanPhase = 'selecting' | 'scanning' | 'analyzing' | 'scored' | 'error';
 
 type Analysis = {
   score: number;
@@ -439,17 +439,9 @@ export default function ScanMode() {
       setPhase('scored');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      // If the message is already descriptive (from API), show it directly
       const isFriendly = msg.includes('Rate limit') || msg.includes('quota') || msg.includes('API key') || msg.includes('overloaded');
       setAnalyzeError(isFriendly ? msg : `Analysis failed: ${msg}`);
-      // Re-open camera
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, audio: false,
-        });
-        streamRef.current = stream;
-        setPhase('scanning');
-      } catch { /* ignore */ }
+      setPhase('error');
     }
   }, [selectedTask, captureTarget, stopCamera]);
 
@@ -871,6 +863,78 @@ export default function ScanMode() {
               className="w-full py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200"
             >
               View full task details
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Analysis error ───────────────────────────────────────────────────────────
+  if (phase === 'error' && selectedTask) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+            <button
+              onClick={goBack}
+              className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <h1 className="text-base font-bold text-slate-900">Analysis Failed</h1>
+          </div>
+        </header>
+
+        <div className="max-w-2xl mx-auto px-4 pt-20 pb-12 space-y-4">
+          {capturedPhotoRef.current && (
+            <img
+              src={capturedPhotoRef.current}
+              alt="Captured"
+              className="w-full aspect-video object-cover rounded-2xl shadow-sm"
+            />
+          )}
+
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center mb-3">
+              <AlertCircle size={20} className="text-red-500" />
+            </div>
+            <h2 className="font-bold text-slate-900 mb-1">Could not analyze photo</h2>
+            <p className="text-sm text-slate-500 leading-relaxed">{analyzeError}</p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => { setAnalyzeError(''); startCamera(selectedTask); }}
+              className="w-full py-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white transition-all active:scale-95"
+            >
+              Try Again
+            </button>
+
+            {capturedPhotoRef.current && (
+              <button
+                onClick={() => {
+                  const field = captureTarget === 'before' ? 'beforePhoto' : 'afterPhoto';
+                  const allTasks = getTasks();
+                  const updated = allTasks.map((t) =>
+                    t.id === selectedTask.id
+                      ? { ...t, [field]: capturedPhotoRef.current as string }
+                      : t,
+                  );
+                  saveTasks(updated);
+                  router.push(`/tasks/${selectedTask.id}`);
+                }}
+                className="w-full py-3 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
+              >
+                Save photo without score
+              </button>
+            )}
+
+            <button
+              onClick={goBack}
+              className="w-full py-3 rounded-xl text-sm text-slate-400 hover:text-slate-600 transition-all"
+            >
+              Cancel
             </button>
           </div>
         </div>
