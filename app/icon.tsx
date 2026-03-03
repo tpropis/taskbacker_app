@@ -16,19 +16,11 @@ export default function Icon() {
           justifyContent: 'center',
         }}
       >
-        <svg width="192" height="192" viewBox="0 0 36 36" fill="none">
+        <svg width="192" height="192" viewBox="0 0 192 192" fill="none">
           <path
-            d="M18 7L9 12V19.5C9 25 13 29.5 18 31C23 29.5 27 25 27 19.5V12L18 7Z"
+            d="M53 101L81 129L139 64"
             stroke="white"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-            fill="none"
-            opacity="0.5"
-          />
-          <path
-            d="M12 19L16 23L24 13"
-            stroke="white"
-            strokeWidth="2.8"
+            strokeWidth="19"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
