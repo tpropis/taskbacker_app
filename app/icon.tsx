@@ -12,19 +12,37 @@ export default function Icon() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'relative',
         }}
       >
-        <svg width="192" height="192" viewBox="0 0 192 192" fill="none">
-          <path
-            d="M53 101L81 129L139 64"
-            stroke="white"
-            strokeWidth="19"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        {/* Short left arm */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 38,
+            top: 81,
+            width: 46,
+            height: 17,
+            background: 'white',
+            borderRadius: 9,
+            transform: 'rotate(41deg)',
+            transformOrigin: 'left center',
+          }}
+        />
+        {/* Long right arm */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 73,
+            top: 111,
+            width: 97,
+            height: 17,
+            background: 'white',
+            borderRadius: 9,
+            transform: 'rotate(-40deg)',
+            transformOrigin: 'left center',
+          }}
+        />
       </div>
     ),
     { ...size },

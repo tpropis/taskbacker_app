@@ -12,19 +12,37 @@ export default function AppleIcon() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'relative',
         }}
       >
-        <svg width="180" height="180" viewBox="0 0 180 180" fill="none">
-          <path
-            d="M50 95L76 121L130 60"
-            stroke="white"
-            strokeWidth="18"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        {/* Short left arm of checkmark — rotates up-right from left tip */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 36,
+            top: 76,
+            width: 43,
+            height: 16,
+            background: 'white',
+            borderRadius: 8,
+            transform: 'rotate(41deg)',
+            transformOrigin: 'left center',
+          }}
+        />
+        {/* Long right arm of checkmark — rotates up-right from junction */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 68,
+            top: 104,
+            width: 91,
+            height: 16,
+            background: 'white',
+            borderRadius: 8,
+            transform: 'rotate(-40deg)',
+            transformOrigin: 'left center',
+          }}
+        />
       </div>
     ),
     { ...size },
