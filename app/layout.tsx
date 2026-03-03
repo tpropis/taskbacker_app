@@ -6,10 +6,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://taskbacker-app.vercel.app'),
   title: 'TaskBacker',
   description: 'Document tasks with before & after photos. AI scores every scan.',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'TaskBacker',
   },
 };

@@ -14,19 +14,23 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '44px',
         }}
       >
-        <svg width="108" height="108" viewBox="0 0 36 36" fill="none">
+        <svg width="192" height="192" viewBox="0 0 192 192" fill="none">
+          {/* Shield outline — stroke only, clearly visible */}
           <path
-            d="M18 3L5 9V18C5 26 10.5 32.5 18 35C25.5 32.5 31 26 31 18V9L18 3Z"
-            fill="white"
-            fillOpacity="0.25"
-          />
-          <path
-            d="M11 19L15 23L25 13"
+            d="M96 38L48 64V104C48 133 69 157 96 165C123 157 144 133 144 104V64Z"
             stroke="white"
-            strokeWidth="3"
+            strokeWidth="8"
+            strokeLinejoin="round"
+            fill="none"
+            opacity="0.5"
+          />
+          {/* Checkmark */}
+          <path
+            d="M66 104L85 124L127 74"
+            stroke="white"
+            strokeWidth="15"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
