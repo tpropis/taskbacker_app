@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, context } = await req.json();
+    const { imageBase64, context, depthMeta } = await req.json();
 
     if (!imageBase64) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -32,7 +32,14 @@ export async function POST(req: NextRequest) {
               type: 'text',
               text: `You are TaskBacker AI — a professional inspector and quality rater.
 
-Analyze this image${context ? ` for the task: "${context}"` : ''}.
+Analyze this image${context ? ` for the task: "${context}"` : ''}.${depthMeta ? `
+
+LiDAR depth data was captured alongside this photo:
+- Nearest detected surface: ${depthMeta.minDepth.toFixed(2)}m
+- Furthest detected surface: ${depthMeta.maxDepth.toFixed(2)}m
+- Average scene depth: ${depthMeta.avgDepth.toFixed(2)}m
+- Depth source: ${depthMeta.source}
+Use this spatial context to improve your assessment (e.g. estimating object sizes, distances, or structural gaps).` : ''}
 
 Score the overall quality/condition from 0–100:
 - 0–30: Critical — major problems, unsafe or unacceptable

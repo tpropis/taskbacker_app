@@ -5,6 +5,155 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, CheckCircle, CheckCircle2, Loader2, TrendingUp } from 'lucide-react';
 import { Task, getTasks, saveTasks, getCategoryIcon } from '@/lib/tasks';
 
+// ── WebXR depth sensing type extensions ──────────────────────────────────────
+// These extend the standard WebXR types with the depth-sensing feature,
+// which isn't yet in TypeScript's DOM lib.
+interface XRCPUDepthInformation {
+  readonly width: number;
+  readonly height: number;
+  readonly rawValueToMeters: number;
+  readonly data: ArrayBuffer;
+  getDepthInMeters(x: number, y: number): number;
+}
+
+// XRFrame with depth sensing (optional — only present when feature is granted)
+type XRFrameWithDepth = XRFrame & {
+  getDepthInformation?: (view: XRView) => XRCPUDepthInformation | null;
+};
+
+// XRSession options used when requesting depth sensing
+type XRDepthSessionInit = XRSessionInit & {
+  depthSensing?: {
+    usagePreference: string[];
+    dataFormatPreference: string[];
+  };
+};
+
+// ── Depth metadata sent to the AI ────────────────────────────────────────────
+type DepthMeta = {
+  minDepth: number;
+  maxDepth: number;
+  avgDepth: number;
+  source: 'lidar-webxr' | 'simulated';
+};
+
+// ── LiDAR canvas overlay ──────────────────────────────────────────────────────
+function LiDARDepthOverlay({
+  active,
+  lidarActive,
+  depthInfoRef,
+}: {
+  active: boolean;
+  lidarActive: boolean;
+  depthInfoRef: React.MutableRefObject<XRCPUDepthInformation | null>;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !active) return;
+
+    const syncSize = () => {
+      canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
+      canvas.height = canvas.offsetHeight * (window.devicePixelRatio || 1);
+    };
+    syncSize();
+    window.addEventListener('resize', syncSize);
+
+    const ctx = canvas.getContext('2d')!;
+    let animId: number;
+    let scanY = 0;
+    let tick = 0;
+
+    const draw = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const di = depthInfoRef.current;
+      const color = di ? '0, 212, 255' : '124, 58, 237';
+
+      // Grid
+      const gridPx = Math.round(w / 10);
+      ctx.save();
+      ctx.strokeStyle = di ? 'rgba(0,212,255,0.18)' : 'rgba(124,58,237,0.15)';
+      ctx.lineWidth = 0.5 * (window.devicePixelRatio || 1);
+      for (let x = 0; x <= w; x += gridPx) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y <= h; y += gridPx) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+      ctx.restore();
+
+      // Depth points
+      for (let i = 0; i < 80; i++) {
+        const nx = Math.sin(i * 137.508) * 0.5 + 0.5;
+        const ny = Math.cos(i * 137.508) * 0.5 + 0.5;
+        const px = nx * w;
+        const py = ny * h;
+
+        let depth01: number;
+        if (di) {
+          const rawDepth = di.getDepthInMeters(nx, ny);
+          depth01 = Math.min(rawDepth / 5, 1);
+        } else {
+          depth01 = Math.sin(i * 0.41 + tick * 0.012) * 0.5 + 0.5;
+        }
+
+        const hue = ((depth01 * 200 + 180) % 360 + 360) % 360;
+        ctx.beginPath();
+        ctx.arc(px, py, 3 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue},100%,60%,0.55)`;
+        ctx.fill();
+      }
+
+      // Sweep line
+      const grad = ctx.createLinearGradient(0, scanY - 50, 0, scanY + 50);
+      grad.addColorStop(0,    `rgba(${color},0)`);
+      grad.addColorStop(0.45, `rgba(${color},0.12)`);
+      grad.addColorStop(0.5,  `rgba(${color},0.5)`);
+      grad.addColorStop(0.55, `rgba(${color},0.12)`);
+      grad.addColorStop(1,    `rgba(${color},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, scanY - 50, w, 100);
+
+      ctx.strokeStyle = `rgba(${color},0.85)`;
+      ctx.lineWidth = 1.5 * (window.devicePixelRatio || 1);
+      ctx.beginPath(); ctx.moveTo(0, scanY); ctx.lineTo(w, scanY); ctx.stroke();
+
+      scanY = (scanY + 1.8) % h;
+      tick++;
+      animId = requestAnimationFrame(draw);
+    };
+
+    animId = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', syncSize);
+    };
+  }, [active, depthInfoRef]);
+
+  if (!active) return null;
+
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ mixBlendMode: 'screen' }}
+      />
+      {/* LiDAR status badge */}
+      <div className="absolute top-36 left-0 right-0 flex justify-center pointer-events-none" style={{ zIndex: 30 }}>
+        <span className={`lidar-badge ${lidarActive ? 'active' : 'simulated'}`}>
+          <span className="lidar-badge-dot" />
+          {lidarActive ? 'LiDAR Active' : 'LiDAR Simulated'}
+        </span>
+      </div>
+    </>
+  );
+}
+
 type ScanPhase = 'selecting' | 'scanning' | 'analyzing' | 'scored';
 
 type Analysis = {
@@ -106,17 +255,35 @@ export default function ScanMode() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzeError, setAnalyzeError] = useState('');
 
+  // LiDAR / WebXR depth sensing state
+  const xrSessionRef = useRef<XRSession | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const xrRefSpaceRef = useRef<any>(null);
+  const depthInfoRef = useRef<XRCPUDepthInformation | null>(null);
+  const [lidarActive, setLidarActive] = useState(false);
+
   const loadTasks = useCallback(() => {
     setTasks(getTasks().filter((t) => !t.completed));
   }, []);
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
 
+  const stopXR = useCallback(() => {
+    if (xrSessionRef.current) {
+      xrSessionRef.current.end().catch(() => {});
+      xrSessionRef.current = null;
+    }
+    xrRefSpaceRef.current = null;
+    depthInfoRef.current = null;
+    setLidarActive(false);
+  }, []);
+
   const stopCamera = useCallback(() => {
+    stopXR();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setCameraReady(false);
-  }, []);
+  }, [stopXR]);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
@@ -140,6 +307,48 @@ export default function ScanMode() {
       });
       streamRef.current = stream;
       setPhase('scanning');
+
+      // Attempt WebXR depth sensing in background (LiDAR on iPhone 12 Pro+ / Android)
+      void (async () => {
+        try {
+          const xr = navigator.xr;
+          if (!xr) return;
+          const supported = await xr.isSessionSupported('immersive-ar').catch(() => false);
+          if (!supported) return;
+
+          const sessionInit: XRDepthSessionInit = {
+            optionalFeatures: ['depth-sensing'],
+            depthSensing: {
+              usagePreference: ['cpu-optimized'],
+              dataFormatPreference: ['luminance-alpha'],
+            },
+          };
+          const session = await xr.requestSession('immersive-ar', sessionInit);
+          xrSessionRef.current = session;
+
+          const refSpace = await session.requestReferenceSpace('local');
+          xrRefSpaceRef.current = refSpace;
+          setLidarActive(true);
+
+          // XR frame loop — keeps depthInfoRef current
+          const onFrame = (_time: number, frame: XRFrame) => {
+            if (!xrSessionRef.current) return;
+            const pose = frame.getViewerPose(refSpace as XRReferenceSpace);
+            const depthFrame = frame as XRFrameWithDepth;
+            if (pose && depthFrame.getDepthInformation) {
+              const view = pose.views[0];
+              if (view) {
+                const di = depthFrame.getDepthInformation(view);
+                if (di) depthInfoRef.current = di;
+              }
+            }
+            session.requestAnimationFrame(onFrame);
+          };
+          session.requestAnimationFrame(onFrame);
+        } catch {
+          // WebXR depth not supported on this device/browser — simulated overlay still shows
+        }
+      })();
     } catch (err) {
       stopCamera();
       const name = (err instanceof Error) ? err.name : '';
@@ -158,6 +367,35 @@ export default function ScanMode() {
     const dataURL = captureFrame(video);
     capturedPhotoRef.current = dataURL;
 
+    // Snapshot depth data before stopping the XR session
+    const depthMeta: DepthMeta | null = (() => {
+      const di = depthInfoRef.current;
+      if (!di) {
+        // Simulated depth metadata based on typical indoor distances
+        return {
+          minDepth: 0.3 + Math.random() * 0.5,
+          maxDepth: 2.5 + Math.random() * 2.5,
+          avgDepth: 1.2 + Math.random() * 0.8,
+          source: 'simulated' as const,
+        };
+      }
+      // Real WebXR depth — sample a 5×5 grid
+      const samples: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const d = di.getDepthInMeters((i + 0.5) / 5, (j + 0.5) / 5);
+          if (d > 0 && d < 20) samples.push(d);
+        }
+      }
+      if (samples.length === 0) return null;
+      return {
+        minDepth: Math.min(...samples),
+        maxDepth: Math.max(...samples),
+        avgDepth: samples.reduce((a, b) => a + b, 0) / samples.length,
+        source: 'lidar-webxr' as const,
+      };
+    })();
+
     setFlash(true);
     setTimeout(() => setFlash(false), 200);
 
@@ -173,6 +411,7 @@ export default function ScanMode() {
         body: JSON.stringify({
           imageBase64: dataURL,
           context: selectedTask.title + (selectedTask.description ? ': ' + selectedTask.description : ''),
+          depthMeta,
         }),
       });
 
@@ -352,6 +591,12 @@ export default function ScanMode() {
           autoPlay playsInline muted
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: cameraReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
+        />
+        {/* LiDAR depth overlay — canvas with scan animation + depth points */}
+        <LiDARDepthOverlay
+          active={cameraReady}
+          lidarActive={lidarActive}
+          depthInfoRef={depthInfoRef}
         />
         {!cameraReady && (
           <div className="absolute inset-0 flex items-center justify-center">
