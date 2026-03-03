@@ -16,21 +16,19 @@ export default function Icon() {
           justifyContent: 'center',
         }}
       >
-        <svg width="192" height="192" viewBox="0 0 192 192" fill="none">
-          {/* Shield outline — stroke only, clearly visible */}
+        <svg width="192" height="192" viewBox="0 0 36 36" fill="none">
           <path
-            d="M96 38L48 64V104C48 133 69 157 96 165C123 157 144 133 144 104V64Z"
+            d="M18 7L9 12V19.5C9 25 13 29.5 18 31C23 29.5 27 25 27 19.5V12L18 7Z"
             stroke="white"
-            strokeWidth="8"
+            strokeWidth="1.5"
             strokeLinejoin="round"
             fill="none"
             opacity="0.5"
           />
-          {/* Checkmark */}
           <path
-            d="M66 104L85 124L127 74"
+            d="M12 19L16 23L24 13"
             stroke="white"
-            strokeWidth="15"
+            strokeWidth="2.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />

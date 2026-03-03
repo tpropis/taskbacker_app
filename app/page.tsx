@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import {
-  Camera, CheckSquare,
-  Plus, X, CheckCircle2,
-  Layers, Zap, CheckCheck, ImageIcon,
-} from 'lucide-react';
+import { Camera, CheckSquare, Plus, X, CheckCircle2 } from 'lucide-react';
 import Header from '@/components/Header';
 import TaskCard from '@/components/TaskCard';
 import { getTasks, saveTasks, createTask, Task, Priority, Category } from '@/lib/tasks';
@@ -170,12 +166,9 @@ export default function HomePage() {
     return true;
   });
 
-  const stats = {
-    total: tasks.length,
-    active: tasks.filter((t) => !t.completed).length,
-    completed: tasks.filter((t) => t.completed).length,
-    documented: tasks.filter((t) => t.beforePhoto && t.afterPhoto).length,
-  };
+  const active = tasks.filter((t) => !t.completed).length;
+  const done = tasks.filter((t) => t.completed).length;
+  const scanned = tasks.filter((t) => t.beforePhoto && t.afterPhoto).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -185,25 +178,22 @@ export default function HomePage() {
 
         {/* ── Empty state ── */}
         {tasks.length === 0 && (
-          <div className="mb-8">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Welcome</h1>
-            <p className="text-slate-500 text-sm mb-6">
-              Document jobs with before &amp; after photos.
-            </p>
-
-            <div className="space-y-3">
+          <div className="mt-4 mb-6">
+            <h1 className="text-xl font-bold text-slate-900 mb-1">Get started</h1>
+            <p className="text-slate-400 text-sm mb-5">Document jobs with before &amp; after photos.</p>
+            <div className="space-y-2.5">
               {[
-                { icon: <Plus size={18} className="text-indigo-600" />, bg: 'bg-indigo-50', n: '1', title: 'Add a task', desc: 'Tap + to describe the job' },
-                { icon: <Camera size={18} className="text-amber-500" />, bg: 'bg-amber-50', n: '2', title: 'Scan the problem', desc: 'AI rates the issue 0–100' },
-                { icon: <CheckCircle2 size={18} className="text-emerald-600" />, bg: 'bg-emerald-50', n: '3', title: 'Fix & scan again', desc: 'Prove the work is done' },
+                { icon: <Plus size={17} className="text-indigo-600" />, bg: 'bg-indigo-50', title: 'Add a task', desc: 'Tap + to describe the job' },
+                { icon: <Camera size={17} className="text-amber-500" />, bg: 'bg-amber-50', title: 'Scan the problem', desc: 'AI rates the issue 0–100' },
+                { icon: <CheckCircle2 size={17} className="text-emerald-600" />, bg: 'bg-emerald-50', title: 'Fix & scan again', desc: 'Prove the work is done' },
               ].map((item) => (
-                <div key={item.n} className="bg-white rounded-2xl px-4 py-3.5 border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className={`w-9 h-9 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <div key={item.title} className="bg-white rounded-2xl px-4 py-3 border border-slate-100 flex items-center gap-3.5">
+                  <div className={`w-8 h-8 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
                     {item.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{item.title}</p>
-                    <p className="text-xs text-slate-500">{item.desc}</p>
+                    <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                    <p className="text-xs text-slate-400">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -211,40 +201,15 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Stats ── */}
+        {/* ── Stat summary line ── */}
         {tasks.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {[
-              { label: 'Active',     value: stats.active,     icon: <Zap size={16} />,        iconBg: 'bg-amber-50',   iconColor: 'text-amber-500',   numColor: 'text-amber-600' },
-              { label: 'Done',       value: stats.completed,  icon: <CheckCheck size={16} />, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', numColor: 'text-emerald-600' },
-              { label: 'Total',      value: stats.total,      icon: <Layers size={16} />,     iconBg: 'bg-slate-100',  iconColor: 'text-slate-500',   numColor: 'text-slate-900' },
-              { label: 'Documented', value: stats.documented, icon: <ImageIcon size={16} />,  iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  numColor: 'text-indigo-600' },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-sm flex items-center gap-3">
-                <div className={`w-9 h-9 ${s.iconBg} rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconColor}`}>
-                  {s.icon}
-                </div>
-                <div>
-                  <div className={`text-2xl font-black leading-none ${s.numColor}`}>{s.value}</div>
-                  <div className="text-xs text-slate-400 mt-0.5 font-medium">{s.label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-xs text-slate-400 mb-4 font-medium">
+            {active} active · {done} done{scanned > 0 ? ` · ${scanned} scanned` : ''}
+          </p>
         )}
 
-        {/* ── Task list header ── */}
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-base font-black text-slate-900 tracking-tight">Your Tasks</h2>
-          {tasks.length > 0 && (
-            <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
-              {filtered.length}
-            </span>
-          )}
-        </div>
-
         {/* ── Filters ── */}
-        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 mb-4">
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 mb-3">
           {(['all', 'active', 'completed'] as const).map((f) => (
             <button
               key={f}
@@ -261,13 +226,13 @@ export default function HomePage() {
         </div>
 
         {/* ── Task list ── */}
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {filtered.length === 0 ? (
-            <div className="text-center py-14">
-              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <CheckSquare size={24} className="text-slate-400" />
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <CheckSquare size={20} className="text-slate-400" />
               </div>
-              <p className="text-slate-800 font-bold mb-1">
+              <p className="text-slate-500 text-sm">
                 {filter === 'completed' ? 'No completed tasks yet' : filter === 'active' ? 'No active tasks' : 'No tasks yet'}
               </p>
               {filter === 'all' && (

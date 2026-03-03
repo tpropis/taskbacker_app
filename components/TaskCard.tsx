@@ -80,31 +80,16 @@ export default function TaskCard({ task, onToggle, onSelect, selected, compact }
           </h3>
 
           {/* Meta row */}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ps.label}`}>
-              {task.priority}
-            </span>
-            <span className="text-xs text-slate-400">
-              {getCategoryIcon(task.category)} {task.category}
-            </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-slate-400">{task.category}</span>
             {task.dueDate && (
               <span className="flex items-center gap-1 text-xs text-slate-400">
                 <Clock size={10} />
                 {formatDueDate(task.dueDate)}
               </span>
             )}
-            {scanStatus === 'both' && (
-              <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                <Camera size={9} />
-                Scanned
-              </span>
-            )}
-            {scanStatus === 'before' && (
-              <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                <Camera size={9} />
-                Before only
-              </span>
-            )}
+            {scanStatus === 'both' && <Camera size={11} className="text-emerald-500" />}
+            {scanStatus === 'before' && <Camera size={11} className="text-amber-400" />}
           </div>
         </div>
 

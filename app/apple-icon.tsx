@@ -16,21 +16,19 @@ export default function AppleIcon() {
           justifyContent: 'center',
         }}
       >
-        <svg width="180" height="180" viewBox="0 0 180 180" fill="none">
-          {/* Shield outline — stroke only, clearly visible */}
+        <svg width="180" height="180" viewBox="0 0 36 36" fill="none">
           <path
-            d="M90 35L45 60V97.5C45 125 65 147.5 90 155C115 147.5 135 125 135 97.5V60Z"
+            d="M18 7L9 12V19.5C9 25 13 29.5 18 31C23 29.5 27 25 27 19.5V12L18 7Z"
             stroke="white"
-            strokeWidth="7"
+            strokeWidth="1.5"
             strokeLinejoin="round"
             fill="none"
             opacity="0.5"
           />
-          {/* Checkmark */}
           <path
-            d="M62 97L80 116L118 68"
+            d="M12 19L16 23L24 13"
             stroke="white"
-            strokeWidth="14"
+            strokeWidth="2.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
