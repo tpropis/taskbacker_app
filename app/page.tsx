@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Camera, CheckSquare, ChevronRight,
+  Camera, CheckSquare,
   Plus, X, CheckCircle2,
   Layers, Zap, CheckCheck, ImageIcon,
 } from 'lucide-react';
@@ -41,13 +41,10 @@ function CreateTaskModal({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">New Task</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Fill in the details below</p>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">New Task</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X size={18} />
           </button>
@@ -56,7 +53,7 @@ function CreateTaskModal({
         <div className="p-6 space-y-4">
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
-              Task Title <span className="text-red-400 normal-case font-normal">*</span>
+              Title <span className="text-red-400 normal-case font-normal">*</span>
             </label>
             <input
               autoFocus
@@ -75,7 +72,7 @@ function CreateTaskModal({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What's the problem? What needs to happen?"
+              placeholder="What needs to happen?"
               rows={2}
               className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm resize-none transition-all"
             />
@@ -184,84 +181,61 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <main className="max-w-3xl mx-auto px-6 pt-24 pb-36">
+      <main className="max-w-3xl mx-auto px-5 pt-20 pb-36">
 
-        {/* ── How it works (empty state) ── */}
+        {/* ── Empty state ── */}
         {tasks.length === 0 && (
           <div className="mb-8">
-            <div className="mb-6">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Welcome to TaskBacker</h1>
-              <p className="text-slate-500 text-sm mt-1.5">
-                Document jobs with before &amp; after photos. AI inspects every scan and gives a score.
-              </p>
-            </div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Welcome</h1>
+            <p className="text-slate-500 text-sm mb-6">
+              Document jobs with before &amp; after photos.
+            </p>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="space-y-3">
               {[
-                {
-                  icon: <Plus size={20} className="text-indigo-600" />,
-                  bg: 'bg-indigo-50',
-                  border: 'border-indigo-100',
-                  step: '01',
-                  stepColor: 'text-indigo-400',
-                  title: 'Add a task',
-                  desc: 'Describe the job that needs doing',
-                },
-                {
-                  icon: <Camera size={20} className="text-amber-500" />,
-                  bg: 'bg-amber-50',
-                  border: 'border-amber-100',
-                  step: '02',
-                  stepColor: 'text-amber-400',
-                  title: 'Scan the problem',
-                  desc: 'Point your camera — AI rates the issue',
-                },
-                {
-                  icon: <CheckCircle2 size={20} className="text-emerald-600" />,
-                  bg: 'bg-emerald-50',
-                  border: 'border-emerald-100',
-                  step: '03',
-                  stepColor: 'text-emerald-400',
-                  title: 'Fix & scan again',
-                  desc: 'Prove the work is done with a score',
-                },
+                { icon: <Plus size={18} className="text-indigo-600" />, bg: 'bg-indigo-50', n: '1', title: 'Add a task', desc: 'Tap + to describe the job' },
+                { icon: <Camera size={18} className="text-amber-500" />, bg: 'bg-amber-50', n: '2', title: 'Scan the problem', desc: 'AI rates the issue 0–100' },
+                { icon: <CheckCircle2 size={18} className="text-emerald-600" />, bg: 'bg-emerald-50', n: '3', title: 'Fix & scan again', desc: 'Prove the work is done' },
               ].map((item) => (
-                <div key={item.step} className={`bg-white rounded-2xl p-5 border ${item.border} shadow-sm`}>
-                  <p className={`text-[10px] font-black tracking-widest mb-3 ${item.stepColor}`}>STEP {item.step}</p>
-                  <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center mb-3`}>
+                <div key={item.n} className="bg-white rounded-2xl px-4 py-3.5 border border-slate-100 shadow-sm flex items-center gap-4">
+                  <div className={`w-9 h-9 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
                     {item.icon}
                   </div>
-                  <p className="text-sm font-bold text-slate-900 mb-1">{item.title}</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{item.title}</p>
+                    <p className="text-xs text-slate-500">{item.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── Stats strip ── */}
+        {/* ── Stats ── */}
         {tasks.length > 0 && (
-          <div className="grid grid-cols-4 gap-3 mb-8">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { label: 'Total',      value: stats.total,      icon: <Layers size={16} />,     iconBg: 'bg-slate-100',  iconColor: 'text-slate-500',   numColor: 'text-slate-900' },
               { label: 'Active',     value: stats.active,     icon: <Zap size={16} />,        iconBg: 'bg-amber-50',   iconColor: 'text-amber-500',   numColor: 'text-amber-600' },
               { label: 'Done',       value: stats.completed,  icon: <CheckCheck size={16} />, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', numColor: 'text-emerald-600' },
+              { label: 'Total',      value: stats.total,      icon: <Layers size={16} />,     iconBg: 'bg-slate-100',  iconColor: 'text-slate-500',   numColor: 'text-slate-900' },
               { label: 'Documented', value: stats.documented, icon: <ImageIcon size={16} />,  iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  numColor: 'text-indigo-600' },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                <div className={`w-8 h-8 ${s.iconBg} rounded-lg flex items-center justify-center mb-3 ${s.iconColor}`}>
+              <div key={s.label} className="bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-sm flex items-center gap-3">
+                <div className={`w-9 h-9 ${s.iconBg} rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconColor}`}>
                   {s.icon}
                 </div>
-                <div className={`text-2xl font-black leading-none ${s.numColor}`}>{s.value}</div>
-                <div className="text-xs text-slate-400 mt-1 font-medium">{s.label}</div>
+                <div>
+                  <div className={`text-2xl font-black leading-none ${s.numColor}`}>{s.value}</div>
+                  <div className="text-xs text-slate-400 mt-0.5 font-medium">{s.label}</div>
+                </div>
               </div>
             ))}
           </div>
         )}
 
         {/* ── Task list header ── */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Your Tasks</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-base font-black text-slate-900 tracking-tight">Your Tasks</h2>
           {tasks.length > 0 && (
             <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
               {filtered.length}
@@ -270,47 +244,36 @@ export default function HomePage() {
         </div>
 
         {/* ── Filters ── */}
-        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 w-fit mb-5">
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5 mb-4">
           {(['all', 'active', 'completed'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-[9px] text-sm transition-all ${
+              className={`flex-1 py-2 rounded-[9px] text-sm transition-all ${
                 filter === f
                   ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                  : 'text-slate-500 hover:text-slate-700 font-medium'
+                  : 'text-slate-500 font-medium'
               }`}
             >
-              {f === 'all'
-                ? `All (${stats.total})`
-                : f === 'active'
-                ? `Active (${stats.active})`
-                : `Done (${stats.completed})`}
+              {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Done'}
             </button>
           ))}
         </div>
 
         {/* ── Task list ── */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-14">
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <CheckSquare size={24} className="text-slate-400" />
               </div>
-              <p className="text-slate-800 font-bold mb-1.5">
-                {filter === 'completed'
-                  ? 'No completed tasks yet'
-                  : filter === 'active'
-                  ? 'No active tasks'
-                  : 'No tasks yet'}
-              </p>
-              <p className="text-slate-400 text-sm">
-                {filter === 'all' && 'Add your first task to get started'}
+              <p className="text-slate-800 font-bold mb-1">
+                {filter === 'completed' ? 'No completed tasks yet' : filter === 'active' ? 'No active tasks' : 'No tasks yet'}
               </p>
               {filter === 'all' && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-5 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm"
+                  className="mt-4 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all"
                 >
                   Add your first task
                 </button>
@@ -318,18 +281,9 @@ export default function HomePage() {
             </div>
           ) : (
             filtered.map((task) => (
-              <div key={task.id} className="flex items-stretch gap-2">
-                <div className="flex-1 min-w-0">
-                  <TaskCard task={task} onToggle={handleToggle} />
-                </div>
-                <Link
-                  href={`/tasks/${task.id}`}
-                  className="flex items-center px-3 bg-white rounded-xl text-slate-400 hover:text-indigo-600 border border-slate-200 hover:border-indigo-200 transition-all flex-shrink-0 shadow-sm"
-                  title="View details & photos"
-                >
-                  <ChevronRight size={18} />
-                </Link>
-              </div>
+              <Link key={task.id} href={`/tasks/${task.id}`} className="block active:scale-[0.99] transition-transform">
+                <TaskCard task={task} onToggle={handleToggle} />
+              </Link>
             ))
           )}
         </div>

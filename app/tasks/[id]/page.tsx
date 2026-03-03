@@ -140,7 +140,7 @@ export default function TaskDetailPage() {
         onChange={(e) => handlePhotoCapture(e, 'after')}
       />
 
-      <main className="max-w-xl mx-auto px-4 pt-20 pb-32">
+      <main className="max-w-xl mx-auto px-4 pt-16 pb-32">
         {/* Back */}
         <Link
           href="/"
