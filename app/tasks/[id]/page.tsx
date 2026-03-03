@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Camera, Clock, RotateCcw, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Camera, Clock, Loader2, RotateCcw, TrendingUp } from 'lucide-react';
 import Header from '@/components/Header';
 import {
   getTasks, saveTasks,
@@ -24,7 +24,7 @@ function scoreBg(score: number): string {
 }
 
 function resizeImage(file: File, maxDim: number, quality: number): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new window.Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
@@ -39,6 +39,10 @@ function resizeImage(file: File, maxDim: number, quality: number): Promise<strin
       canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
     img.src = url;
   });
 }
@@ -50,6 +54,7 @@ export default function TaskDetailPage() {
   const [task, setTask] = useState<Task | null>(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState<'before' | 'after' | null>(null);
 
   const beforeInputRef = useRef<HTMLInputElement>(null);
   const afterInputRef = useRef<HTMLInputElement>(null);
@@ -84,12 +89,48 @@ export default function TaskDetailPage() {
       try {
         const dataURL = await resizeImage(file, 1200, 0.82);
         persist(target === 'before' ? { beforePhoto: dataURL } : { afterPhoto: dataURL });
-      } finally {
         setSaving(false);
+
+        // Analyze the photo with Claude
+        setAnalyzing(target);
+        setTask((prev) => {
+          // Read current task title/description for context
+          return prev;
+        });
+        const currentTask = getTasks().find((t) => t.id === id);
+        const context = currentTask
+          ? currentTask.title + (currentTask.description ? ': ' + currentTask.description : '')
+          : '';
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        try {
+          const res = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: dataURL, context }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (res.ok) {
+            const data = await res.json();
+            const score = Math.max(0, Math.min(100, data.score ?? 0));
+            if (target === 'before') {
+              persist({ beforeScore: score, beforeAnalysis: data });
+            } else {
+              persist({ afterScore: score, afterAnalysis: data });
+            }
+          }
+        } catch { /* analysis failure is non-fatal — photo is already saved */ }
+        finally { clearTimeout(timeout); }
+      } catch {
+        setSaving(false);
+      } finally {
+        setAnalyzing(null);
         e.target.value = '';
       }
     },
-    [persist],
+    [persist, id],
   );
 
   const toggleComplete = useCallback(() => {
@@ -98,6 +139,7 @@ export default function TaskDetailPage() {
 
   const deleteTask = useCallback(() => {
     if (!task) return;
+    if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
     const allTasks = getTasks().filter((t) => t.id !== task.id);
     saveTasks(allTasks);
     router.replace('/');
@@ -281,9 +323,15 @@ export default function TaskDetailPage() {
                   <RotateCcw size={13} />
                 </button>
               )}
-              <span className={`text-xs font-medium ${task.beforePhoto ? 'text-green-600' : 'text-gray-400'}`}>
-                {task.beforePhoto ? '✓ Captured' : 'Not captured'}
-              </span>
+              {analyzing === 'before' ? (
+                <span className="text-xs font-medium text-blue-600 flex items-center gap-1">
+                  <Loader2 size={11} className="animate-spin" /> Analyzing…
+                </span>
+              ) : (
+                <span className={`text-xs font-medium ${task.beforePhoto ? 'text-green-600' : 'text-gray-400'}`}>
+                  {task.beforePhoto ? '✓ Captured' : 'Not captured'}
+                </span>
+              )}
             </div>
           </div>
           {task.beforePhoto ? (
@@ -291,8 +339,8 @@ export default function TaskDetailPage() {
           ) : (
             <button
               onClick={() => beforeInputRef.current?.click()}
-              disabled={saving}
-              className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
+              disabled={saving || analyzing !== null}
+              className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
             >
               <Camera size={28} />
               <span className="text-sm font-medium">Capture before photo</span>
@@ -316,9 +364,15 @@ export default function TaskDetailPage() {
                     <RotateCcw size={13} />
                   </button>
                 )}
-                <span className={`text-xs font-medium ${task.afterPhoto ? 'text-green-600' : 'text-gray-400'}`}>
-                  {task.afterPhoto ? '✓ Captured' : 'Not captured'}
-                </span>
+                {analyzing === 'after' ? (
+                  <span className="text-xs font-medium text-blue-600 flex items-center gap-1">
+                    <Loader2 size={11} className="animate-spin" /> Analyzing…
+                  </span>
+                ) : (
+                  <span className={`text-xs font-medium ${task.afterPhoto ? 'text-green-600' : 'text-gray-400'}`}>
+                    {task.afterPhoto ? '✓ Captured' : 'Not captured'}
+                  </span>
+                )}
               </div>
             </div>
             {task.afterPhoto ? (
@@ -326,8 +380,8 @@ export default function TaskDetailPage() {
             ) : (
               <button
                 onClick={() => afterInputRef.current?.click()}
-                disabled={saving}
-                className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
+                disabled={saving || analyzing !== null}
+                className="w-full py-10 flex flex-col items-center gap-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
               >
                 <Camera size={28} />
                 <span className="text-sm font-medium">Capture after photo</span>

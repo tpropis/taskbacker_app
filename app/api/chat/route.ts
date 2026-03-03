@@ -5,11 +5,15 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages, taskContext } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'No messages provided' }, { status: 400 });
     }
+
+    const taskSection = taskContext
+      ? `\n\nUser's current tasks:\n${taskContext}`
+      : '';
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -30,7 +34,7 @@ Scoring reference:
 - 71–85: Good — minor issues, mostly acceptable
 - 86–100: Excellent — clean, complete, professional
 
-You are powered by Claude (Anthropic), not ChatGPT. Be concise, direct, and helpful.`,
+You are powered by Claude (Anthropic), not ChatGPT. Be concise, direct, and helpful.${taskSection}`,
       messages,
     });
 

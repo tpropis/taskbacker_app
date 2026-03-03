@@ -166,6 +166,9 @@ export default function ScanMode() {
     setAnalysis(null);
     setAnalyzeError('');
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -174,10 +177,13 @@ export default function ScanMode() {
           imageBase64: dataURL,
           context: selectedTask.title + (selectedTask.description ? ': ' + selectedTask.description : ''),
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
-      if (!res.ok) throw new Error('API error');
+      if (!res.ok) throw new Error(`Analysis failed (${res.status})`);
       const data: Analysis = await res.json();
+      data.score = Math.max(0, Math.min(100, data.score ?? 0));
       data.grade = gradeLabel(data.score);
       setAnalysis(data);
 
@@ -194,16 +200,18 @@ export default function ScanMode() {
       setSelectedTask(updated.find((t) => t.id === selectedTask.id) ?? selectedTask);
       setTasks(updated.filter((t) => !t.completed));
       setPhase('scored');
-    } catch {
-      setAnalyzeError('Analysis failed. Check that ANTHROPIC_API_KEY is set in Vercel.');
-      // Re-open camera
+    } catch (err) {
+      clearTimeout(timeout);
+      const isTimeout = err instanceof Error && err.name === 'AbortError';
+      setAnalyzeError(isTimeout ? 'Analysis timed out. Try again.' : 'Analysis failed. Check ANTHROPIC_API_KEY is set.');
+      // Always return to scanning phase so the user can see the error and go back
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' }, audio: false,
         });
         streamRef.current = stream;
-        setPhase('scanning');
-      } catch { /* ignore */ }
+      } catch { /* camera restart optional */ }
+      setPhase('scanning');
     }
   }, [selectedTask, captureTarget, stopCamera]);
 

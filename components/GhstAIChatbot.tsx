@@ -8,19 +8,58 @@ type Message = {
   content: string;
 };
 
+function loadTaskContext(): string {
+  try {
+    const stored = localStorage.getItem('taskbacker_tasks');
+    if (!stored) return '';
+    const tasks = JSON.parse(stored) as Array<{
+      title: string;
+      priority: string;
+      category: string;
+      completed: boolean;
+      beforeScore?: number;
+      afterScore?: number;
+      description?: string;
+    }>;
+    if (!tasks.length) return '';
+    return tasks
+      .map((t) => {
+        const scores =
+          t.beforeScore !== undefined && t.afterScore !== undefined
+            ? ` | before: ${t.beforeScore}, after: ${t.afterScore}`
+            : t.beforeScore !== undefined
+            ? ` | before score: ${t.beforeScore}`
+            : '';
+        return `- ${t.title} [${t.priority}, ${t.category}${t.completed ? ', done' : ''}${scores}]${t.description ? `: ${t.description}` : ''}`;
+      })
+      .join('\n');
+  } catch {
+    return '';
+  }
+}
+
 export default function GhstAIChatbot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [taskContext, setTaskContext] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
+      // Refresh task context each time the panel opens
+      setTaskContext(loadTaskContext());
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, open]);
 
@@ -39,17 +78,18 @@ export default function GhstAIChatbot() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, taskContext }),
       });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
-      setMessages([...next, { role: 'assistant', content: data.message }]);
+      const reply = typeof data.message === 'string' && data.message ? data.message : 'No response received.';
+      setMessages([...next, { role: 'assistant', content: reply }]);
     } catch {
       setError('Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages]);
+  }, [input, loading, messages, taskContext]);
 
   const handleKey = useCallback(
     (e: React.KeyboardEvent) => {
