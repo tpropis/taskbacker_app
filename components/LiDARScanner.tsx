@@ -417,7 +417,8 @@ export default function ScanMode() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.detail || errBody.error || `HTTP ${res.status}`);
+        // Surface the friendly message from the API (rate limit, quota, auth, etc.)
+        throw new Error(errBody.error || errBody.detail || `HTTP ${res.status}`);
       }
       const data: Analysis = await res.json();
       data.grade = gradeLabel(data.score);
@@ -438,7 +439,9 @@ export default function ScanMode() {
       setPhase('scored');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      setAnalyzeError(`Analysis failed: ${msg}`);
+      // If the message is already descriptive (from API), show it directly
+      const isFriendly = msg.includes('Rate limit') || msg.includes('quota') || msg.includes('API key') || msg.includes('overloaded');
+      setAnalyzeError(isFriendly ? msg : `Analysis failed: ${msg}`);
       // Re-open camera
       try {
         const stream = await navigator.mediaDevices.getUserMedia({

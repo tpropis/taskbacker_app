@@ -3,34 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const client = new Anthropic();
 
-export async function POST(req: NextRequest) {
-  try {
-    const { imageBase64, context, depthMeta } = await req.json();
-
-    if (!imageBase64) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
-    }
-
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: base64Data,
-              },
-            },
-            {
-              type: 'text',
-              text: `You are TaskBacker AI — a professional inspector and quality rater.
+const PROMPT_BODY = (context?: string, depthMeta?: DepthMeta) => `You are TaskBacker AI — a professional inspector and quality rater.
 
 Analyze this image${context ? ` for the task: "${context}"` : ''}.${depthMeta ? `
 
@@ -57,32 +30,84 @@ Respond ONLY with valid JSON (no markdown, no code fences):
   "headline": <concise verdict, max 8 words>,
   "summary": <2-3 sentences describing exactly what you see and why you gave this score>,
   "findings": [<5 specific observations about what is good or bad, each 1 short sentence>]
-}`,
-            },
-          ],
-        },
-      ],
-    });
+}`;
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+type DepthMeta = { minDepth: number; maxDepth: number; avgDepth: number; source: string };
 
+function friendlyError(err: unknown): { message: string; status: number } {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('rate_limit') || lower.includes('rate limit') || lower.includes('429')) {
+    return { message: 'Rate limit reached — please wait a moment and try again.', status: 429 };
+  }
+  if (lower.includes('quota') || lower.includes('exceeded') || lower.includes('credit')) {
+    return { message: 'API quota exceeded. Check your Anthropic account credits.', status: 402 };
+  }
+  if (lower.includes('api_key') || lower.includes('api key') || lower.includes('auth') || lower.includes('401')) {
+    return { message: 'Invalid or missing ANTHROPIC_API_KEY. Set it in your Vercel environment.', status: 401 };
+  }
+  if (lower.includes('overloaded') || lower.includes('529') || lower.includes('service')) {
+    return { message: 'Anthropic API is temporarily overloaded. Try again in a moment.', status: 503 };
+  }
+  return { message: raw, status: 500 };
+}
+
+async function callAPI(base64Data: string, context?: string, depthMeta?: DepthMeta) {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 800,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: 'image/jpeg', data: base64Data },
+          },
+          { type: 'text', text: PROMPT_BODY(context, depthMeta) },
+        ],
+      },
+    ],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { score: 72, grade: 'B', headline: 'Analysis complete', summary: text.slice(0, 200), findings: [] };
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { imageBase64, context, depthMeta } = await req.json();
+
+    if (!imageBase64) {
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    // Retry once on rate-limit (429) with a short backoff
     let result;
     try {
-      result = JSON.parse(text);
-    } catch {
-      result = {
-        score: 72,
-        grade: 'B',
-        headline: 'Analysis complete',
-        summary: text.slice(0, 200),
-        findings: [],
-      };
+      result = await callAPI(base64Data, context, depthMeta);
+    } catch (firstErr: unknown) {
+      const raw = firstErr instanceof Error ? firstErr.message : String(firstErr);
+      const isRateLimit = raw.toLowerCase().includes('rate_limit') || raw.toLowerCase().includes('429');
+      if (isRateLimit) {
+        await new Promise((r) => setTimeout(r, 3000));
+        result = await callAPI(base64Data, context, depthMeta);
+      } else {
+        throw firstErr;
+      }
     }
 
     return NextResponse.json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const { message, status } = friendlyError(err);
     console.error('Analyze error:', message);
-    return NextResponse.json({ error: 'Analysis failed', detail: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
   }
 }
