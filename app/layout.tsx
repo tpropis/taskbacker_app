@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://taskbacker.vercel.app'),
+  metadataBase: new URL('https://taskbacker-app.vercel.app'),
   title: 'TaskBacker — Document. Review. Complete.',
   description:
     'Task management with before & after photo documentation. ' +
