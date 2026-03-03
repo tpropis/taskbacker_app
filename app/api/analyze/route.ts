@@ -35,13 +35,22 @@ Respond ONLY with valid JSON (no markdown, no code fences):
 type DepthMeta = { minDepth: number; maxDepth: number; avgDepth: number; source: string };
 
 function friendlyError(err: unknown): { message: string; status: number } {
+  // Check Anthropic SDK status codes first — more reliable than keyword matching
+  if (err && typeof err === 'object' && 'status' in err) {
+    const httpStatus = (err as { status: number }).status;
+    if (httpStatus === 429) return { message: 'Rate limit reached — please wait a moment and try again.', status: 429 };
+    if (httpStatus === 402) return { message: 'API quota exceeded. Check your Anthropic account credits.', status: 402 };
+    if (httpStatus === 401 || httpStatus === 403) return { message: 'Invalid or missing ANTHROPIC_API_KEY. Set it in your Vercel environment.', status: 401 };
+    if (httpStatus === 529 || httpStatus === 503 || httpStatus === 500) return { message: 'Anthropic API is temporarily overloaded. Try again in a moment.', status: 503 };
+  }
+
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
 
   if (lower.includes('rate_limit') || lower.includes('rate limit') || lower.includes('429')) {
     return { message: 'Rate limit reached — please wait a moment and try again.', status: 429 };
   }
-  if (lower.includes('quota') || lower.includes('exceeded') || lower.includes('credit')) {
+  if (lower.includes('quota') || lower.includes('credit') || lower.includes('billing')) {
     return { message: 'API quota exceeded. Check your Anthropic account credits.', status: 402 };
   }
   if (lower.includes('api_key') || lower.includes('api key') || lower.includes('auth') || lower.includes('401')) {
@@ -94,9 +103,13 @@ export async function POST(req: NextRequest) {
     try {
       result = await callAPI(base64Data, context, depthMeta);
     } catch (firstErr: unknown) {
+      const httpStatus = (firstErr && typeof firstErr === 'object' && 'status' in firstErr)
+        ? (firstErr as { status: number }).status
+        : 0;
       const raw = firstErr instanceof Error ? firstErr.message : String(firstErr);
-      const isRateLimit = raw.toLowerCase().includes('rate_limit') || raw.toLowerCase().includes('429');
-      if (isRateLimit) {
+      const isRetryable = httpStatus === 429 || httpStatus === 529
+        || raw.toLowerCase().includes('rate_limit') || raw.toLowerCase().includes('rate limit');
+      if (isRetryable) {
         await new Promise((r) => setTimeout(r, 3000));
         result = await callAPI(base64Data, context, depthMeta);
       } else {
