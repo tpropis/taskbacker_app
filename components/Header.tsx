@@ -1,8 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Camera } from 'lucide-react';
 
 function TaskBackerLogo() {
   return (
@@ -25,43 +23,16 @@ function TaskBackerLogo() {
 }
 
 export default function Header() {
-  const pathname = usePathname();
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-      <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+      <div className="max-w-3xl mx-auto px-5 h-16 flex items-center">
         <Link href="/" className="flex items-center gap-3">
           <TaskBackerLogo />
           <div className="leading-none">
             <p className="font-black text-[15px] text-slate-900 tracking-tight">TaskBacker</p>
-            <p className="text-[11px] text-slate-400 mt-1 hidden sm:block">Document · Review · Complete</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Document · Review · Complete</p>
           </div>
         </Link>
-
-        <nav className="flex items-center bg-slate-100 rounded-xl p-1 gap-0.5">
-          <Link
-            href="/"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[9px] text-sm transition-all ${
-              pathname === '/'
-                ? 'bg-white text-slate-900 shadow-sm font-semibold'
-                : 'text-slate-500 hover:text-slate-800 font-medium'
-            }`}
-          >
-            <LayoutDashboard size={14} />
-            <span>Tasks</span>
-          </Link>
-          <Link
-            href="/ar"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[9px] text-sm transition-all ${
-              pathname === '/ar' || pathname?.startsWith('/tasks')
-                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-                : 'text-slate-500 hover:text-slate-800 font-medium'
-            }`}
-          >
-            <Camera size={14} />
-            <span>Scan</span>
-          </Link>
-        </nav>
       </div>
     </header>
   );

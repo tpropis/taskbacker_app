@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Camera, CheckSquare, ChevronRight,
-  Plus, X, CheckCircle2, ArrowRight,
+  Plus, X, CheckCircle2,
   Layers, Zap, CheckCheck, ImageIcon,
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -184,7 +184,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <main className="max-w-3xl mx-auto px-6 pt-24 pb-28">
+      <main className="max-w-3xl mx-auto px-6 pt-24 pb-36">
 
         {/* ── How it works (empty state) ── */}
         {tasks.length === 0 && (
@@ -260,22 +260,13 @@ export default function HomePage() {
         )}
 
         {/* ── Task list header ── */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">Your Tasks</h2>
-            {tasks.length > 0 && (
-              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
-                {filtered.length}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm"
-          >
-            <Plus size={15} />
-            New Task
-          </button>
+        <div className="flex items-center gap-2.5 mb-4">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Your Tasks</h2>
+          {tasks.length > 0 && (
+            <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
+              {filtered.length}
+            </span>
+          )}
         </div>
 
         {/* ── Filters ── */}
@@ -343,30 +334,20 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── Scan CTA ── */}
-        {tasks.length > 0 && (
-          <div className="mt-8 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Camera size={24} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-bold text-white mb-0.5">Ready to scan?</h3>
-                <p className="text-indigo-200 text-sm">
-                  Point your camera — AI inspects and scores in seconds.
-                </p>
-              </div>
-              <Link
-                href="/ar"
-                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-white text-indigo-700 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all active:scale-95"
-              >
-                Scan
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        )}
       </main>
+
+      {/* ── FAB ── */}
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="fixed z-40 w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-200/60 flex items-center justify-center transition-transform active:scale-90"
+        style={{
+          bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
+          right: '20px',
+        }}
+        aria-label="New task"
+      >
+        <Plus size={26} />
+      </button>
 
       {showCreateModal && (
         <CreateTaskModal onClose={() => setShowCreateModal(false)} onSave={handleCreateTask} />

@@ -218,8 +218,8 @@ function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-black text-gray-900 leading-none">{score}</span>
-        <span className="text-xs font-semibold text-gray-400">/100</span>
+        <span className="text-3xl font-black text-slate-900 leading-none">{score}</span>
+        <span className="text-xs font-semibold text-slate-400">/100</span>
       </div>
     </div>
   );
@@ -465,26 +465,26 @@ export default function ScanMode() {
   // ── Task selection ──────────────────────────────────────────────────────────
   if (phase === 'selecting') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+      <div className="min-h-screen bg-slate-50">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
             <button
               onClick={() => router.push('/')}
-              className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
+              className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all"
             >
               <ArrowLeft size={16} />
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">Scan a Task</h1>
-              <p className="text-xs text-gray-500">Choose which task to inspect</p>
+              <h1 className="text-base font-bold text-slate-900 leading-tight">Scan a Task</h1>
+              <p className="text-xs text-slate-500">Choose which task to inspect</p>
             </div>
           </div>
         </header>
 
         <div className="max-w-2xl mx-auto px-4 pt-20 pb-12">
           {/* How scanning works */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-sm font-semibold text-blue-900 mb-2">How scanning works</p>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6">
+            <p className="text-sm font-semibold text-indigo-900 mb-2">How scanning works</p>
             <div className="space-y-1.5">
               {[
                 'Pick a task from the list below',
@@ -493,10 +493,10 @@ export default function ScanMode() {
                 'After fixing it, scan again to show the improvement',
               ].map((step, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="w-5 h-5 bg-blue-600 text-white rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 bg-indigo-600 text-white rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <p className="text-sm text-blue-800">{step}</p>
+                  <p className="text-sm text-indigo-800">{step}</p>
                 </div>
               ))}
             </div>
@@ -510,21 +510,21 @@ export default function ScanMode() {
 
           {tasks.length === 0 ? (
             <div className="text-center py-16">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Camera size={22} className="text-gray-400" />
+              <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Camera size={22} className="text-slate-400" />
               </div>
-              <p className="text-gray-900 font-semibold mb-1">No active tasks</p>
-              <p className="text-gray-500 text-sm mb-4">Add a task first, then come back to scan it.</p>
+              <p className="text-slate-900 font-semibold mb-1">No active tasks</p>
+              <p className="text-slate-500 text-sm mb-4">Add a task first, then come back to scan it.</p>
               <button
                 onClick={() => router.push('/')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all"
               >
-                Go to Dashboard
+                Go to Tasks
               </button>
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Select a task to scan
               </p>
               {tasks.map((task) => {
@@ -534,7 +534,7 @@ export default function ScanMode() {
                   <button
                     key={task.id}
                     onClick={() => startCamera(task)}
-                    className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.99]"
+                    className="w-full text-left bg-white border border-slate-100 rounded-xl p-4 hover:border-indigo-200 hover:shadow-sm transition-all active:scale-[0.99]"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
@@ -542,11 +542,11 @@ export default function ScanMode() {
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize priority-${task.priority}`}>
                             {task.priority}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-slate-400">
                             {getCategoryIcon(task.category)} {task.category}
                           </span>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900 truncate">{task.title}</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{task.title}</p>
                       </div>
 
                       {/* Scan status */}
@@ -555,12 +555,12 @@ export default function ScanMode() {
                           <div className="flex items-center gap-1.5">
                             <div className="text-center">
                               <div className="text-sm font-black" style={{ color: scoreColor(task.beforeScore!) }}>{task.beforeScore}</div>
-                              <div className="text-[10px] text-gray-400">before</div>
+                              <div className="text-[10px] text-slate-400">before</div>
                             </div>
-                            <TrendingUp size={14} className="text-gray-300" />
+                            <TrendingUp size={14} className="text-slate-300" />
                             <div className="text-center">
                               <div className="text-sm font-black" style={{ color: scoreColor(task.afterScore!) }}>{task.afterScore}</div>
-                              <div className="text-[10px] text-gray-400">after</div>
+                              <div className="text-[10px] text-slate-400">after</div>
                             </div>
                           </div>
                         ) : hasBeforeScan ? (
@@ -569,7 +569,7 @@ export default function ScanMode() {
                             <div className="text-[10px] text-orange-500 font-semibold">needs after</div>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400 font-medium">Tap to scan →</span>
+                          <span className="text-xs text-slate-400 font-medium">Tap to scan →</span>
                         )}
                       </div>
                     </div>
@@ -676,7 +676,7 @@ export default function ScanMode() {
                 disabled={!cameraReady}
                 className="w-full py-4 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 text-white"
                 style={{
-                  background: isBefore ? '#2563eb' : '#16a34a',
+                  background: isBefore ? '#4f46e5' : '#16a34a',
                 }}
               >
                 <Camera size={18} />
@@ -707,9 +707,9 @@ export default function ScanMode() {
           </div>
         )}
         <div className="flex flex-col items-center gap-2 text-center">
-          <Loader2 size={28} className="text-blue-600 animate-spin" />
-          <p className="text-gray-900 font-bold text-lg">AI is inspecting...</p>
-          <p className="text-gray-500 text-sm">Analyzing the photo and scoring the issue</p>
+          <Loader2 size={28} className="text-indigo-600 animate-spin" />
+          <p className="text-slate-900 font-bold text-lg">AI is inspecting...</p>
+          <p className="text-slate-500 text-sm">Analyzing the photo and scoring the issue</p>
         </div>
       </div>
     );
@@ -726,18 +726,18 @@ export default function ScanMode() {
       : null;
 
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+      <div className="min-h-screen bg-slate-50">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
             <button
               onClick={goBack}
-              className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all"
+              className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all"
             >
               <ArrowLeft size={16} />
             </button>
             <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">Scan Result</h1>
-              <p className="text-xs text-gray-500 truncate max-w-[200px]">{selectedTask.title}</p>
+              <h1 className="text-base font-bold text-slate-900 leading-tight">Scan Result</h1>
+              <p className="text-xs text-slate-500 truncate max-w-[200px]">{selectedTask.title}</p>
             </div>
           </div>
         </header>
@@ -745,7 +745,7 @@ export default function ScanMode() {
         <div className="max-w-2xl mx-auto px-4 pt-20 pb-16 space-y-4">
 
           {/* Photo + score card */}
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
             {capturedPhotoRef.current && (
               <img
                 src={capturedPhotoRef.current}
@@ -771,23 +771,23 @@ export default function ScanMode() {
                       {scoreLabel(analysis.score)}
                     </span>
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 mb-1">{analysis.headline}</p>
-                  <p className="text-xs text-gray-400 capitalize">{isBefore ? 'Before scan' : 'After scan'}</p>
+                  <p className="text-sm font-semibold text-slate-900 mb-1">{analysis.headline}</p>
+                  <p className="text-xs text-slate-400 capitalize">{isBefore ? 'Before scan' : 'After scan'}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Summary */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Summary</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{analysis.summary}</p>
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Summary</p>
+            <p className="text-sm text-slate-700 leading-relaxed">{analysis.summary}</p>
           </div>
 
           {/* Findings */}
           {analysis.findings.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 What the AI found
               </p>
               <div className="space-y-2">
@@ -799,7 +799,7 @@ export default function ScanMode() {
                     >
                       <span className="text-[10px] font-bold" style={{ color }}>{i + 1}</span>
                     </div>
-                    <p className="text-sm text-gray-700 leading-snug">{f}</p>
+                    <p className="text-sm text-slate-700 leading-snug">{f}</p>
                   </div>
                 ))}
               </div>
@@ -808,8 +808,8 @@ export default function ScanMode() {
 
           {/* Before → After comparison */}
           {improvement !== null && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Before vs After
               </p>
               <div className="flex items-center justify-around">
@@ -817,7 +817,7 @@ export default function ScanMode() {
                   <div className="text-3xl font-black" style={{ color: scoreColor(beforeScore!) }}>
                     {beforeScore}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Before</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Before</div>
                 </div>
                 <div className="text-center">
                   <div
@@ -826,13 +826,13 @@ export default function ScanMode() {
                   >
                     {improvement >= 0 ? '+' : ''}{improvement}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Change</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Change</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-black" style={{ color: scoreColor(afterScore!) }}>
                     {afterScore}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">After</div>
+                  <div className="text-xs text-slate-500 mt-0.5">After</div>
                 </div>
               </div>
             </div>
@@ -843,7 +843,7 @@ export default function ScanMode() {
             {isBefore && (
               <button
                 onClick={() => { setCaptureTarget('after'); startCamera(selectedTask); }}
-                className="w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 <Camera size={16} />
                 Scan After the Fix
@@ -868,7 +868,7 @@ export default function ScanMode() {
 
             <button
               onClick={() => router.push(`/tasks/${selectedTask.id}`)}
-              className="w-full py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all border border-gray-200"
+              className="w-full py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200"
             >
               View full task details
             </button>
