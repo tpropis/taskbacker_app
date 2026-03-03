@@ -4,20 +4,12 @@ import Link from 'next/link';
 
 function TaskBackerLogo() {
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="36" height="36" rx="10" fill="#4f46e5" />
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="34" height="34" rx="9" fill="#4f46e5" />
       <path
-        d="M18 7L9 12V19.5C9 25 13 29.5 18 31C23 29.5 27 25 27 19.5V12L18 7Z"
+        d="M9.5 18L14.5 23L24.5 12"
         stroke="white"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        fill="none"
-        opacity="0.5"
-      />
-      <path
-        d="M12 19L16 23L24 13"
-        stroke="white"
-        strokeWidth="2.8"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

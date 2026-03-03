@@ -174,7 +174,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <main className="max-w-3xl mx-auto px-5 pt-20 pb-36">
+      <main className="max-w-3xl mx-auto px-5 pt-20 pb-28">
 
         {/* ── Empty state ── */}
         {tasks.length === 0 && (
@@ -201,11 +201,14 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Stat summary line ── */}
+        {/* ── Section header + Filters ── */}
         {tasks.length > 0 && (
-          <p className="text-xs text-slate-400 mb-4 font-medium">
-            {active} active · {done} done{scanned > 0 ? ` · ${scanned} scanned` : ''}
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-bold text-slate-900">Tasks</h1>
+            <span className="text-xs text-slate-400 font-medium">
+              {active} active · {done} done{scanned > 0 ? ` · ${scanned} scanned` : ''}
+            </span>
+          </div>
         )}
 
         {/* ── Filters ── */}
