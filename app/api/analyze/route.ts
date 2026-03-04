@@ -3,36 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const client = new Anthropic();
 
-export async function POST(req: NextRequest) {
-  try {
-    const { imageBase64, context } = await req.json();
+const PROMPT_BODY = (context?: string, depthMeta?: DepthMeta) => `You are TaskBacker AI — a professional inspector and quality rater.
 
-    if (!imageBase64) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
-    }
+Analyze this image${context ? ` for the task: "${context}"` : ''}.${depthMeta ? `
 
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: base64Data,
-              },
-            },
-            {
-              type: 'text',
-              text: `You are TaskBacker AI — a professional inspector and quality rater.
-
-Analyze this image${context ? ` for the task: "${context}"` : ''}.
+LiDAR depth data was captured alongside this photo:
+- Nearest detected surface: ${depthMeta.minDepth.toFixed(2)}m
+- Furthest detected surface: ${depthMeta.maxDepth.toFixed(2)}m
+- Average scene depth: ${depthMeta.avgDepth.toFixed(2)}m
+- Depth source: ${depthMeta.source}
+Use this spatial context to improve your assessment (e.g. estimating object sizes, distances, or structural gaps).` : ''}
 
 Score the overall quality/condition from 0–100:
 - 0–30: Critical — major problems, unsafe or unacceptable
@@ -50,32 +30,108 @@ Respond ONLY with valid JSON (no markdown, no code fences):
   "headline": <concise verdict, max 8 words>,
   "summary": <2-3 sentences describing exactly what you see and why you gave this score>,
   "findings": [<5 specific observations about what is good or bad, each 1 short sentence>]
-}`,
-            },
-          ],
-        },
-      ],
-    });
+}`;
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+type DepthMeta = { minDepth: number; maxDepth: number; avgDepth: number; source: string };
 
+function friendlyError(err: unknown): { message: string; status: number } {
+  // Check Anthropic SDK status codes first — more reliable than keyword matching
+  if (err && typeof err === 'object' && 'status' in err) {
+    const httpStatus = (err as { status: number }).status;
+    if (httpStatus === 429) return { message: 'Rate limit reached — please wait a moment and try again.', status: 429 };
+    if (httpStatus === 402) return { message: 'API quota exceeded. Check your Anthropic account credits.', status: 402 };
+    if (httpStatus === 401 || httpStatus === 403) return { message: 'Invalid or missing ANTHROPIC_API_KEY. Set it in your Vercel environment.', status: 401 };
+    if (httpStatus === 529 || httpStatus === 503 || httpStatus === 500) return { message: 'Anthropic API is temporarily overloaded. Try again in a moment.', status: 503 };
+  }
+
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('rate_limit') || lower.includes('rate limit') || lower.includes('429')) {
+    return { message: 'Rate limit reached — please wait a moment and try again.', status: 429 };
+  }
+  if (lower.includes('quota') || lower.includes('credit') || lower.includes('billing')) {
+    return { message: 'API quota exceeded. Check your Anthropic account credits.', status: 402 };
+  }
+  if (lower.includes('api_key') || lower.includes('api key') || lower.includes('auth') || lower.includes('401')) {
+    return { message: 'Invalid or missing ANTHROPIC_API_KEY. Set it in your Vercel environment.', status: 401 };
+  }
+  if (lower.includes('overloaded') || lower.includes('529') || lower.includes('service')) {
+    return { message: 'Anthropic API is temporarily overloaded. Try again in a moment.', status: 503 };
+  }
+  return { message: raw, status: 500 };
+}
+
+async function callAPI(base64Data: string, context?: string, depthMeta?: DepthMeta, model = 'claude-sonnet-4-6') {
+  const response = await client.messages.create({
+    model,
+    max_tokens: 800,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: 'image/jpeg', data: base64Data },
+          },
+          { type: 'text', text: PROMPT_BODY(context, depthMeta) },
+        ],
+      },
+    ],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { score: 72, grade: 'B', headline: 'Analysis complete', summary: text.slice(0, 200), findings: [] };
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { imageBase64, context, depthMeta } = await req.json();
+
+    if (!imageBase64) {
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    // Try sonnet → if rate-limited wait + retry → if quota/still failing, fall back to haiku
     let result;
     try {
-      result = JSON.parse(text);
-    } catch {
-      result = {
-        score: 72,
-        grade: 'B',
-        headline: 'Analysis complete',
-        summary: text.slice(0, 200),
-        findings: [],
-      };
+      result = await callAPI(base64Data, context, depthMeta);
+    } catch (firstErr: unknown) {
+      const httpStatus = (firstErr && typeof firstErr === 'object' && 'status' in firstErr)
+        ? (firstErr as { status: number }).status : 0;
+      const raw = firstErr instanceof Error ? firstErr.message : String(firstErr);
+      const lower = raw.toLowerCase();
+      const isRateLimit = httpStatus === 429 || httpStatus === 529
+        || lower.includes('rate_limit') || lower.includes('rate limit');
+      const isQuota = httpStatus === 402
+        || lower.includes('quota') || lower.includes('credit') || lower.includes('billing');
+
+      if (isRateLimit) {
+        // Wait then retry sonnet; if it fails again, fall through to haiku
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          result = await callAPI(base64Data, context, depthMeta);
+        } catch {
+          result = await callAPI(base64Data, context, depthMeta, 'claude-haiku-4-5-20251001');
+        }
+      } else if (isQuota) {
+        // Quota exceeded on sonnet — try haiku which has its own quota tier
+        result = await callAPI(base64Data, context, depthMeta, 'claude-haiku-4-5-20251001');
+      } else {
+        throw firstErr;
+      }
     }
 
     return NextResponse.json(result);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const { message, status } = friendlyError(err);
     console.error('Analyze error:', message);
-    return NextResponse.json({ error: 'Analysis failed', detail: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
   }
 }

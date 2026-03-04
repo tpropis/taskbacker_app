@@ -6,6 +6,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  touch-action: manipulation;
 }
 
 html,
@@ -69,6 +74,47 @@ body {
   animation: lidar-scan 3s linear infinite;
   pointer-events: none;
   z-index: 10;
+}
+
+/* ─── LiDAR depth overlay ───────────────────────── */
+@keyframes lidar-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.lidar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid;
+  animation: lidar-badge-pulse 2s ease-in-out infinite;
+}
+
+.lidar-badge.active {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #00d4ff;
+}
+
+.lidar-badge.simulated {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: rgba(124, 58, 237, 0.5);
+  color: #a78bfa;
+}
+
+.lidar-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* ─── Scrollbar ─────────────────────────────────── */

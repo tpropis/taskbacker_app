@@ -1,17 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
-  title: 'TaskBacker — Document. Review. Complete.',
-  description:
-    'Task management with before & after photo documentation. ' +
-    'Capture the problem, fix it, capture the proof. Works in Safari — no app required.',
-  keywords: ['task management', 'photo documentation', 'before after', 'field tasks', 'productivity'],
-  authors: [{ name: 'TaskBacker' }],
-  openGraph: {
+  metadataBase: new URL('https://taskbacker-app.vercel.app'),
+  title: 'TaskBacker',
+  description: 'Document tasks with before & after photos. AI scores every scan.',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
     title: 'TaskBacker',
-    description: 'Document tasks with before & after photos. Works in Safari on iPhone.',
-    type: 'website',
   },
 };
 
@@ -19,14 +17,15 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#000000',
+  themeColor: '#4f46e5',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-black text-white antialiased">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
         {children}
+        <BottomNav />
       </body>
     </html>
   );

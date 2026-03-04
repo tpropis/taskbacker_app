@@ -1,11 +1,7 @@
 'use client';
 
 import { Check, Clock, Camera } from 'lucide-react';
-import {
-  Task,
-  getCategoryIcon,
-  formatDueDate,
-} from '@/lib/tasks';
+import { Task, formatDueDate } from '@/lib/tasks';
 
 interface Props {
   task: Task;
@@ -15,120 +11,113 @@ interface Props {
   compact?: boolean;
 }
 
-const priorityStyles = {
-  high:   { dot: 'bg-red-500',    label: 'text-red-600 bg-red-50 border border-red-200' },
-  medium: { dot: 'bg-orange-400', label: 'text-orange-600 bg-orange-50 border border-orange-200' },
-  low:    { dot: 'bg-green-500',  label: 'text-green-700 bg-green-50 border border-green-200' },
+const stripe = {
+  high:   'bg-rose-500',
+  medium: 'bg-amber-400',
+  low:    'bg-emerald-500',
 };
 
-export default function TaskCard({ task, onToggle, onSelect, selected, compact }: Props) {
-  const ps = priorityStyles[task.priority];
-  const scanStatus = task.beforePhoto && task.afterPhoto
-    ? 'both'
-    : task.beforePhoto
-    ? 'before'
-    : 'none';
+const dot = {
+  high:   'bg-rose-400',
+  medium: 'bg-amber-400',
+  low:    'bg-emerald-400',
+};
 
+function scorePill(score: number) {
+  if (score >= 80) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+  if (score >= 60) return 'bg-amber-50 text-amber-700 border border-amber-200';
+  return 'bg-red-50 text-red-700 border border-red-200';
+}
+
+export default function TaskCard({ task, onToggle, onSelect, selected, compact }: Props) {
   if (compact) {
     return (
       <div
         onClick={() => onSelect?.(task)}
-        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${
-          selected
-            ? 'bg-blue-50 border-blue-300'
-            : 'bg-white border-gray-200 hover:border-gray-300'
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+          selected ? 'bg-indigo-50' : 'bg-white hover:bg-slate-50'
         } ${task.completed ? 'opacity-50' : ''}`}
       >
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
           className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-            task.completed ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-400'
+            task.completed ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
           }`}
         >
           {task.completed && <Check size={10} className="text-white" strokeWidth={3} />}
         </button>
-        <p className={`text-sm font-medium flex-1 truncate ${task.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+        <p className={`text-sm font-medium flex-1 truncate ${task.completed ? 'line-through text-slate-400' : 'text-slate-900'}`}>
           {task.title}
         </p>
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${ps.dot}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dot[task.priority]}`} />
       </div>
     );
   }
 
   return (
     <div
-      className={`bg-white rounded-xl border transition-all cursor-pointer ${
-        selected ? 'border-blue-400 shadow-sm' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+      className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all active:scale-[0.99] ${
+        selected ? 'ring-2 ring-indigo-300' : ''
       } ${task.completed ? 'opacity-60' : ''}`}
       onClick={() => onSelect?.(task)}
     >
-      {/* Priority accent bar */}
-      <div className={`h-1 rounded-t-xl ${ps.dot}`} />
+      <div className="flex items-stretch">
+        {/* Left priority stripe */}
+        <div className={`w-[3px] flex-shrink-0 ${stripe[task.priority]}`} />
 
-      <div className="px-4 py-3">
-        <div className="flex items-start gap-3">
-          {/* Complete toggle */}
+        {/* Content */}
+        <div className="flex items-center gap-3 px-4 py-3.5 flex-1 min-w-0">
+          {/* Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
-            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-              task.completed ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-500'
+            className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+              task.completed ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 hover:border-indigo-400'
             }`}
           >
             {task.completed && <Check size={10} className="text-white" strokeWidth={3} />}
           </button>
 
-          {/* Content */}
+          {/* Text */}
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-sm leading-snug ${task.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+            <p className={`text-[15px] font-semibold leading-snug ${
+              task.completed ? 'line-through text-slate-400' : 'text-slate-900'
+            }`}>
               {task.title}
-            </h3>
-            {task.description && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{task.description}</p>
-            )}
-
-            {/* Meta row */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ps.label}`}>
-                {task.priority}
-              </span>
-              <span className="text-xs text-gray-400">
-                {getCategoryIcon(task.category)} {task.category}
-              </span>
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span className="text-[12px] text-slate-400">{task.category}</span>
               {task.dueDate && (
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <Clock size={10} />
-                  {formatDueDate(task.dueDate)}
-                </span>
+                <>
+                  <span className="text-slate-300 text-[10px]">•</span>
+                  <span className="text-[12px] text-slate-400 flex items-center gap-1">
+                    <Clock size={10} />
+                    {formatDueDate(task.dueDate)}
+                  </span>
+                </>
               )}
-              {/* Scan status */}
-              {scanStatus === 'both' && (
-                <span className="flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                  <Camera size={9} />
-                  Scanned
-                </span>
-              )}
-              {scanStatus === 'before' && (
-                <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                  <Camera size={9} />
-                  Before only
-                </span>
+              {task.beforePhoto && (
+                <>
+                  <span className="text-slate-300 text-[10px]">•</span>
+                  <Camera size={10} className={task.afterPhoto ? 'text-emerald-500' : 'text-amber-400'} />
+                </>
               )}
             </div>
           </div>
 
-          {/* Score badge if scanned */}
-          {task.afterScore !== undefined && (
-            <div className="flex-shrink-0 text-center">
-              <div className="text-lg font-black text-gray-900">{task.afterScore}</div>
-              <div className="text-[10px] text-gray-400 -mt-0.5">score</div>
-            </div>
-          )}
-          {task.beforeScore !== undefined && task.afterScore === undefined && (
-            <div className="flex-shrink-0 text-center">
-              <div className="text-lg font-black text-orange-500">{task.beforeScore}</div>
-              <div className="text-[10px] text-gray-400 -mt-0.5">before</div>
-            </div>
-          )}
+          {/* Right: score pill OR priority dot */}
+          <div className="flex-shrink-0">
+            {task.afterScore !== undefined ? (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${scorePill(task.afterScore)}`}>
+                {task.afterScore}
+              </span>
+            ) : task.beforeScore !== undefined ? (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                {task.beforeScore}
+              </span>
+            ) : (
+              <div className={`w-2 h-2 rounded-full ${dot[task.priority]}`} />
+            )}
+          </div>
         </div>
       </div>
     </div>
